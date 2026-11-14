@@ -1,0 +1,4 @@
+# Data files must be stored byte-for-byte (hash-pinned); never convert line endings.
+data/** -text
+*.csv -text
+*.json -text
