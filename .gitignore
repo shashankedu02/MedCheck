@@ -15,3 +15,6 @@ eval_private/
 .env
 .streamlit/secrets.toml
 demo_images/
+# Real photographs and OCR-derived evaluation output are private (ground_truth.csv, labels only, is tracked)
+evaluation/incoming_photos/
+evaluation/results/

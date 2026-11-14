@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-11-14 - real-photograph evaluation workflow
+- `scripts/run_evaluation.py`, `scripts/set_ground_truth.py`, `medcheck/real_eval.py`: per-run, non-overwriting CSV/Markdown records for photos in `evaluation/incoming_photos/`; ground truth kept separate and initially Pending. See `docs/EVALUATION.md`.
+
 ## 2026-11-14 - first implementation (milestones M0-M6)
 - Baseline commit of the pre-implementation documentation and datasets; `.gitattributes` keeps data byte-exact.
 - Canonical dataset generated reproducibly from the official CDSCO extraction (pinned SHA-256), manifest, fail-closed loader.
