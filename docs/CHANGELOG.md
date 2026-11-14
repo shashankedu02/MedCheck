@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-15 - 3D interface visual refinement (M14b, branch `ui-redesign`)
+- Premium strip: procedural brushed/crinkled foil with bump and roughness maps and perforation lines, lathe-profiled refractive glass blisters, glossy capsules with a seam ring, capsule shadows, softbox image-based lighting, backdrop glow and light motes.
+- Cinematic scroll: poses keyed to the real position of each story step (macro, batch-band close-up, pull-back, tool) with inertia and pointer parallax; editorial step layout replaces the cards; collapsed glass sidebar; composed hero with dataset-driven fact chips.
+- Scanning sequence tied to the real OCR phase: enlarged strip, faded page, blister highlight sweep, bracket lock on the batch band, indeterminate reading panel, tinted result and an eased scroll to the verdict. No fabricated progress. Frontend only; fallbacks and the plain UI unchanged.
+
 ## 2026-11-15 - 3D interface (M14, branch `ui-redesign`, D-029)
 - Frontend only: Components V2 WebGL stage (blister strip) with locally vendored Three.js 0.170.0, theme, story, scan phase tied to the real OCR call, scroll effects, fallbacks (no WebGL, reduced motion, `MEDCHECK_PLAIN_UI=1`, import failure). The browser component receives only a phase and a status name.
 - Audit fixes: static serving configured, lifecycle cleanup, resize/aspect, contrast tests, correct commit reference. No backend, OCR, matching, dataset or evaluation change.

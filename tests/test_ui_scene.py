@@ -62,7 +62,10 @@ def test_no_remote_urls_in_the_ui_assets_or_theme():
 # ---------------- lifecycle, resize, fallbacks (static contract of the browser code) ----------------
 def test_component_releases_its_resources_and_resizes_with_the_viewport():
     assert "st.dispose" in JS and "forceContextLoss" in JS and "renderer.dispose()" in JS and "canvas.remove()" in JS
-    assert "cancelAnimationFrame" in JS and "removeEventListener" in JS and "envTarget.dispose()" in JS
+    assert "cancelAnimationFrame" in JS and "removeEventListener" in JS
+    # every texture and render target is registered with track() and released by st.free; overlays are removed too
+    assert "track(envTarget)" in JS and "disposables.forEach((d) =>" in JS and JS.count("track(") >= 6
+    assert "hud.remove()" in JS and "brackets.remove()" in JS
     assert "return st.makeCleanup()" in JS and "st.calls === id" in JS  # an older instance never disposes a newer mount
     assert "addEventListener(ev, fn, o)" in JS and "'resize'" in JS and "camera.aspect = w / h" in JS and "updateProjectionMatrix()" in JS
 
@@ -173,7 +176,8 @@ def test_app_still_works_when_the_presentation_layer_cannot_load(monkeypatch):
 
 # ---------------- wording ----------------
 def test_story_text_follows_the_wording_rules():
-    text = " ".join([theme.HERO_LEAD, theme.HERO_NOTE, *(t + " " + d for _n, t, d in theme.STEPS)])
+    chips = [a + " " + b for a, b in theme.chips(220, "AUG-2026")]
+    text = " ".join([theme.HERO_LEAD, theme.HERO_NOTE, *theme.TAGLINE, *chips, *(t + " " + d for _n, t, d in theme.STEPS)])
     scrubbed = text
     for ok in ALLOWED_NEGATIONS:
         scrubbed = scrubbed.replace(ok, "").replace(ok.capitalize(), "")
@@ -204,6 +208,8 @@ def _hex(h):
 def test_text_contrast_meets_wcag_aa_even_over_the_brightest_canvas():
     r, g, b, a = theme.CARD_RGBA
     worst = tuple(a * c + (1 - a) * 255 for c in (r, g, b))  # glass card over a pure-white highlight (worst case)
+    step_worst = tuple(theme.STEP_ALPHA * c + (1 - theme.STEP_ALPHA) * 255 for c in theme.NAVY)  # step text backing, same worst case
+    assert _ratio(_hex(theme.TEXT), step_worst) >= 4.5 and _ratio((255, 255, 255), step_worst) >= 4.5
     assert _ratio(_hex(theme.TEXT), worst) >= 4.5
     assert _ratio(_hex(theme.MUTED), worst) >= 4.5
     assert _ratio((255, 255, 255), worst) >= 4.5  # card headings
