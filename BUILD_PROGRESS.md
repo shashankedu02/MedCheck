@@ -3,14 +3,14 @@
 Single source of truth for resuming development. Update at the end of every milestone/session.
 
 ## Current milestone
-M2 - Normalization, dates, decision engine (next)
+M3 - Product parsing and batch matching (next)
 
 ## Milestones
 | ID | Milestone | Status |
 |---|---|---|
 | M0 | Repo baseline, .gitignore/.gitattributes, venv, pinned deps | DONE |
 | M1 | Reproducible dataset pipeline, manifest/hashes, fail-closed loader | DONE |
-| M2 | Normalization, date parsing, decision engine (truth-table tests) | todo |
+| M2 | Normalization, date parsing, decision engine (truth-table tests) | DONE |
 | M3 | Product parsing and batch matching incl. serial 38/157 collision | todo |
 | M4 | Image validation, preprocessing, OCR adapter, field extraction | todo |
 | M5 | Pipeline + Streamlit UI + privacy/error handling | todo |
@@ -28,6 +28,11 @@ M2 - Normalization, dates, decision engine (next)
 - Tests: `.venv\Scripts\python.exe -m pytest -q` -> **18 passed**. Build `--check` OK.
 - Limits: official extraction trusted via pinned hash + the extraction log; no screenshots exist.
 
+## M2 report (done)
+- Created: `medcheck/models.py`, `normalization.py`, `dates.py`, `decision.py`; `tests/test_normalization_dates.py`, `tests/test_decision.py`; rewrote `docs/DECISIONS.md`, `docs/EXPIRY_POLICY.md`.
+- Tests: `.venv\Scripts\python.exe -m pytest -q` -> **71 passed** (one real parser gap, 'Sept', found by tests and fixed).
+- Behaviour: `Expired` never emitted (D-007 OPEN); system errors are not statuses; exhaustive grid test over all input combinations.
+
 ## Verified environment
 Windows 11, Python 3.13.5, Tesseract 5.5.3 (`eng`, `osd` only), Git 2.56.1.
 
@@ -38,4 +43,4 @@ None.
 - Month-only expiry interpretation: `Expired` is never emitted until approved.
 
 ## Next action
-Write `medcheck/models.py`, `normalization.py`, `dates.py`, `decision.py` + table-driven tests.
+Write `medcheck/product.py`, `medcheck/matching.py`, `docs/MATCHING.md`, matching tests (incl. serials 38/157).
