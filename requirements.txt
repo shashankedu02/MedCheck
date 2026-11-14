@@ -1,0 +1,11 @@
+# Direct dependencies, pinned to the versions verified together on
+# Windows 11 / Python 3.13.5 / Tesseract 5.5.3 (see BUILD_PROGRESS.md).
+# Tesseract itself is a separate native install and is NOT installed by pip.
+streamlit==1.67.0
+opencv-python-headless==5.0.0.93
+pillow==13.0.0
+pandas==3.1.1
+numpy==2.5.4
+RapidFuzz==3.14.6
+pytesseract==0.3.13
+pytest==9.2.0
