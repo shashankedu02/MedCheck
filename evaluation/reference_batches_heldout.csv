@@ -1,0 +1,8 @@
+test_id,reference_batch,tier,note
+T015,GPD0826002BH,certain,"visual reading of a zoomed crop by an AI model BEFORE the OCR output of the reserved-photo run was viewed; not physical-pack verification. Visual dates: MFD JAN.2026, EXP DEC.2029"
+T021,K2600572,certain,"same method. Visual dates: MFD MAR.2026, EXP FEB.2028"
+T024,HLAS0019,certain,"same method. SAME PACK AND BATCH AS DEV PHOTO T003 (not an independent pack). Visual dates: MFG JUL.2025, EXP JUN.2028"
+T027,18262495A,certain,"same method; the batch is printed ten times on the strip with identical content. Same manufacturer prefix and print style as dev photo T026. Visual dates: MFG 06/2026, EXP 05/2029"
+T009,UB02051,probable,"same method; inverted print on embossed foil, B/8 and O/0 doubtful; not scored. Visual dates (probable): MFG 08/2025, EXP 07/2028"
+T018,GPE0825002BH,probable,"same method; blurred characters in the middle; not scored. Visual dates: MFD APR.2025, EXP MAR.2027"
+T012,,unreadable,"batch partly hidden by embossing (reads like H?NS0027: I/T and S/5 doubtful); not scored. Visual dates: MFG NOV.2025, EXP OCT.2028"

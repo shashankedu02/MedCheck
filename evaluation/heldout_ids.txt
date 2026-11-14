@@ -1,5 +1,6 @@
 # Reserved held-out photographs (docs/OCR_INVESTIGATION.md). Never opened, viewed or OCR-processed during development.
 # The evaluation runner skips these unless --include-heldout is passed explicitly.
+# SPENT: processed once on 2026-11-15 (run heldout_run_20261115_020638, docs/HELDOUT_EVALUATION.md). They must not guide tuning.
 9
 12
 15

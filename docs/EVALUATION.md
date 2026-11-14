@@ -38,10 +38,25 @@ Code: `medcheck/real_eval.py` (no matching logic of its own), `scripts/run_evalu
 `--rescore` re-applies current labels to a past run's recorded outputs as a new run, without re-processing.
 - Extracted product/manufacturer information is only the raw OCR text (truncated, in the CSV); there is no manufacturer extractor. The matched dataset record's product and manufacturer are shown separately when an alert fires.
 - Do not tune thresholds on these photographs unless they are designated `dev` under the protocol above.
-- **Held-out set.** `evaluation/heldout_ids.txt` reserves T009, T012, T015, T018, T021, T024, T027. `run_evaluation.py` skips them by default: the files are not opened, no placeholder label is created and the report names the exclusion. They are processed only with `--include-heldout`, once, after the design is frozen. Rescoring also excludes them.
+- **Held-out set (spent on 2026-11-15, see `docs/HELDOUT_EVALUATION.md`).** `evaluation/heldout_ids.txt` reserved T009, T012, T015, T018, T021, T024, T027. `run_evaluation.py` skips them by default: the files are not opened, no placeholder label is created and the report names the exclusion. They are processed only with `--include-heldout`, once, after the design is frozen. Rescoring also excludes them.
 - **Independent batch reference.** `evaluation/reference_batches.csv` holds batches read by eye from zoomed crops (not from MedCheck output). Only tier `certain` is scored (`exact`, `incorrect`, `ambiguous`, `not_found`); `probable` rows are shown as `unscored`. The reference was produced by an AI model reading re-encoded photos and is **awaiting owner confirmation against the physical packs**; these counts are diagnostics, not accuracy figures.
 - **Clean negatives (D-026).** The tool cannot confirm a batch against a pack, so a clean negative is recorded as `Unable to verify` with reason `ocr_batch_unconfirmed` (the match outcome column still shows `no_match`). Against a `No alert found` label this is scored `Inconclusive`, not a miss; the batch string itself is scored through `batch_result`. The report counts these as "awaiting confirmation".
 - Records include engine provenance (`engines`, `batch_sources`: every raw reading with the engine and image view that produced it).
+
+## Manual browser tests performed by the owner (build `c83ecf3`, 2026-11-15)
+Recorded as **user-performed** tests: the owner ran them in the browser and reported the observations; they were not run or observed by the assistant, and they do not establish OCR accuracy. Photo: the owner's loosely cropped T003 (`D:\3_loosely-croped.jpeg`, not stored in the repository). The assistant's own read-only reproduction of the same file (same extraction, same decision, 2 runs) is separate and is recorded in `docs/V2_REVIEW.md`.
+
+| # | What the owner did | What the owner observed | Result |
+|---|---|---|---|
+| 1 | Checked the loosely cropped T003 photo | Batch `HLA50019`, expiry `JUN.2028`, manufacturing `JUL.2025` extracted and shown as separate fields, apart from the surrounding packaging text. The printed batch appeared to be `HLAS0019`; both OCR passes agreed on the wrong `HLA50019`. The app returned `Unable to verify` (D-026) | Field separation worked; the S/5 misread was real; abstention as designed |
+| 2 | Left the OCR reading uncorrected | `Unable to verify`; the S/5 look-alike risk was explained; the app asked for a comparison with the pack; `No alert found` was not shown before confirmation | Passed |
+| 3 | Replaced `HLA50019` with `HLAS0019`, ticked the confirmation, submitted | Original OCR reading preserved; corrected batch displayed separately and identified as user-corrected; `No alert found` for the corrected batch against the configured dataset; limitations of the result explained | Passed |
+| 4 | Entered `HLAS0019`, ticked the confirmation, then changed the batch to `HLAS0020` | The checkbox cleared by itself; pressing the button without confirming the new number returned `Unable to verify` | Passed |
+
+What these show: the review fixes behave as intended in a real browser session, including the confirmation policy and the edit-clears-confirmation rule (also covered by an automated test). What they do not show: any OCR accuracy figure, correctness of the dataset match for other packs, or that the medicine is genuine or safe. Historical evaluation runs are unchanged.
+
+## Reserved-photo evaluation
+The seven reserved photographs were processed once on 2026-11-15 with the unchanged pipeline at commit `c83ecf3`; see `docs/HELDOUT_EVALUATION.md` (protocol, hashes, per-photo results, limits). They are now **used** and must not guide tuning.
 
 ## What is already verified (not an evaluation)
 Unit and integration tests, including synthetic-label runs through real Tesseract and the Streamlit widgets, are described in `docs/TESTING_GUIDELINES.md`.
