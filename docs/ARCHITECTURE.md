@@ -32,6 +32,8 @@ dataset (fail-closed loader) feeds matching; system failures bypass to a system-
 | `medcheck/evaluation.py`, `scripts/evaluate.py` | Labelled-set metrics with Wilson intervals; results awaiting the user's confirmation (D-026) are a separate category, listed packs misread into unlisted strings are reported as potential misses | built+tested (M6, M13) |
 | `scripts/make_demo_images.py`, `scripts/run_fixture_check.py` | Synthetic test fixtures with an in-frame "TEST FIXTURE" banner and a manifest; fixture runs are written to `evaluation/results/fixtures/`, never with real-photo runs | built+tested (M13) |
 
+| `medcheck_ui/` (`scene.py`, `theme.py`, `assets/scene.js`), `static/vendor/three/` | Presentation layer only: theme, hero/story, and a WebGL blister-strip stage (Components V2) driven by a phase and a status name. Holds no matching, OCR or decision logic; `app.py` falls back to the plain interface if it cannot load | built+tested (M14, branch `ui-redesign`) |
+
 Every `Alert found` carries `Decision.action_check` (what to compare on the pack: batch character by character, product, strength, manufacturer) and names any listed batch within edit distance 2 (D-027). This never delays or changes the alert.
 
 ## Deviations from the original plan (and why)

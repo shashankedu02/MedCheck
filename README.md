@@ -28,6 +28,9 @@ python -m venv .venv
 The second install adds the primary OCR engine (RapidOCR, about 72 MB, offline, models bundled and hash-checked); see `docs/OCR_ENGINES.md`. Without it the app runs on Tesseract alone and says so.
 The app opens at http://localhost:8501 and listens on localhost only. Photos are processed in memory and are not saved, logged or sent anywhere.
 
+## Interface
+The default interface has a 3D blister-strip scene, a short story and the check tool. It runs entirely offline (Three.js is vendored in `static/vendor/three/`, with its licence) and the scan animation runs while the real OCR runs. If the browser cannot render WebGL, or you prefer the plain interface, set `MEDCHECK_PLAIN_UI=1` before `streamlit run app.py`; every check works identically. The 3D layer is decoration: it never receives your photo or text. See `docs/UI_UX_GUIDELINES.md`.
+
 ## Tests
 ```powershell
 .\.venv\Scripts\python.exe -m pytest -q

@@ -22,6 +22,14 @@ except ImportError:  # the code changed on disk while this server kept the old m
 
 st.set_page_config(page_title="MedCheck", page_icon="💊", layout="centered")
 
+try:  # presentation layer (3D stage, theme, story); the app works without it (MEDCHECK_PLAIN_UI=1, or if it fails to load)
+    from medcheck_ui import plain_ui
+    from medcheck_ui.scene import render_scene, status_key
+    from medcheck_ui.theme import render_theme_and_story
+except Exception:  # noqa: BLE001 - any failure here must fall back to the plain interface, never break a check
+    def plain_ui() -> bool:  # type: ignore[misc]
+        return True
+
 
 @st.cache_resource(show_spinner=False)
 def get_pipeline() -> MedCheckPipeline:
@@ -148,10 +156,17 @@ def render_manual_entry(pipeline: MedCheckPipeline, result: ScanResult) -> None:
             st.warning(str(exc))
 
 
-def main() -> None:
-    pipeline = get_pipeline()
-    period = pipeline.dataset.reporting_period if pipeline.dataset else "August 2026 (dataset unavailable)"
+def set_stage(stage, phase: str, result: ScanResult | None = None) -> None:
+    """Update the decorative 3D stage. It gets only a phase and a status name; any failure is ignored (it is decoration)."""
+    if stage is None:
+        return
+    try:
+        render_scene(stage, phase, status_key(result.decision) if (phase == "result" and result is not None) else None)
+    except Exception:  # noqa: BLE001
+        pass
 
+
+def render_tool(pipeline: MedCheckPipeline, period: str, stage) -> None:
     st.title("MedCheck")
     st.write(
         "Upload or take a photo of a medicine strip or box. MedCheck reads the batch number and checks it against the "
@@ -193,11 +208,13 @@ def main() -> None:
         except Exception:  # an unreadable file must reach the pipeline, which explains the problem
             st.caption("A preview is not available for this file.")
         if st.button("Check this photo", type="primary"):
+            set_stage(stage, "scanning")  # the beam sweeps while the real OCR below runs
             with st.spinner("Reading the photo..."):
                 st.session_state["result"] = pipeline.check(data)
                 st.session_state["result_digest"] = digest
                 for k in MANUAL_KEYS:
                     st.session_state.pop(k, None)
+            set_stage(stage, "result", st.session_state["result"])
 
     result = st.session_state.get("result")
     if result is not None:
@@ -212,6 +229,22 @@ def main() -> None:
             st.rerun()
     elif data is None:
         st.caption("Tip: photograph the line that says 'B.No.' or 'Batch No.' in good light, in focus, filling most of the frame.")
+
+
+def main() -> None:
+    pipeline = get_pipeline()
+    period = pipeline.dataset.reporting_period if pipeline.dataset else "August 2026 (dataset unavailable)"
+    stage = None
+    if not plain_ui():
+        try:
+            render_theme_and_story()
+            stage = st.empty()
+        except Exception:  # noqa: BLE001 - the interface works without the presentation layer
+            stage = None
+        prior = st.session_state.get("result")
+        set_stage(stage, "result" if prior is not None else "idle", prior)
+    with st.container(key="mc_tool"):
+        render_tool(pipeline, period, stage)
 
 
 main()

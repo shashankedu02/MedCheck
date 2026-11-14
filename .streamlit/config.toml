@@ -7,6 +7,17 @@ maxUploadSize = 10
 enableXsrfProtection = true
 address = "localhost"
 headless = true
+# Serves ./static/ (the pinned, locally vendored Three.js) at /app/static/. Local files only; no CDN, no network.
+enableStaticServing = true
 
 [client]
 toolbarMode = "minimal"
+
+# Medical-tech palette: deep navy, white text, cyan accent. Text colours are checked for WCAG contrast
+# by tests/test_ui_scene.py. The font stack (Segoe UI Variable first) is set in medcheck_ui/theme.py.
+[theme]
+base = "dark"
+primaryColor = "#22d3ee"
+backgroundColor = "#06142b"
+secondaryBackgroundColor = "#0c2444"
+textColor = "#eaf4ff"
