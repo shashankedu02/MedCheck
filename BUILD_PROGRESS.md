@@ -4,6 +4,8 @@ Single source of truth for resuming development. Update at the end of every mile
 Run tests with: `.venv\Scripts\python.exe -m pytest -q`
 
 ## Current state
+**M12 (reserved-photo evaluation)** is done: see `docs/HELDOUT_EVALUATION.md`. The 7 reserved photographs are now spent. No code or threshold changed. D-014 (60-image protocol) is still open.
+
 **M11 (D-026 confirmation policy)** is done: no clean negative (`No alert found` / `Expired`) is shown for any batch string until the user has compared it with the pack and confirmed; `Alert found` is never delayed. Triggered by a loosely cropped T003 read as `HLA50019` by both engines (true `HLAS0019`).
 
 **M10 (V2 manual-testing review)** is done: see `docs/V2_REVIEW.md` and D-025. No safety rule changed; held-out photographs still untouched.
@@ -69,8 +71,11 @@ All milestones M0-M6 are complete and committed. The application starts, accepts
 - **Dev run `run_20261115_013421`** (same 20 photos, reserved 7 untouched): 20 x Unable to verify; the 5 clean negatives (T006, T008, T013, T014, T019) are withheld as `ocr_batch_unconfirmed`; batch results unchanged (3 exact, 0 incorrect, 4 abstained on the certain references). Alerts are unaffected (none occur in the dev set).
 - Tests: the old xfail for the gap now passes as a normal test; 12 existing tests updated for the new policy; one vacuous UI assertion (matched the page disclaimer) made strict; new tests for every batch source, `Expired`, alerts never delayed, grid invariant, UI wording and evaluation scoring.
 
+**M12 (reserved-photo evaluation, one-time)** - commit verified `c83ecf3` with a clean tree; 7 photos hashed (unchanged vs. before, after and the original baseline run); unchanged pipeline run from outside the repo (`scripts/run_heldout_evaluation.py` is byte-identical); references read by eye after the run and BEFORE its results were viewed (`evaluation/reference_batches_heldout.csv`); nothing tuned. Results: 7 x `Unable to verify` (2 awaiting confirmation, 5 batch abstentions: 3 conflicts, 2 single-pass); against 4 certain references 1 exact, 0 incorrect, 3 abstained; T009 shows a likely wrong truncated reading agreed by two passes (`UBO20` for `UB02051`) that D-026 withheld; dates: expiry 5/7 and manufacturing 3/7 read, none wrong; time mean 7.8 s (4.8-11.3). Not established: any accuracy, any alert detection (no listed pack), independence for T024 (same pack as T003) and T027 (same maker as T026). Owner's four browser tests recorded in `docs/EVALUATION.md` as user-performed.
+
 ## Test results (last run)
-- **After M11, main venv:** `pytest -q` -> **343 passed** (70 s).
+- **After M12 (run after the reserved-photo evaluation), main venv:** `pytest -q` -> **343 passed** (77 s).
+- (Older) After M11: 343 passed (70 s).
 - (Older) After M10: 322 passed.
 - **After M10, main venv:** `pytest -q` -> **322 passed** (217 s on a loaded machine).
 - (Older) **V2 before the review, fresh venv**: 294 passed.

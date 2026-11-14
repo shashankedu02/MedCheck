@@ -36,7 +36,7 @@ MedCheck: photo-based medicine batch verification using local OCR and conservati
 - No image persistence, no logging of image bytes, filenames, OCR text or typed batch numbers, no network calls, no telemetry, no cloud OCR. Streamlit stays bound to localhost.
 - No clean negative (`No alert found` / `Expired`) is shown for any batch string, OCR-read or typed, until the user has compared it with the pack and confirmed (D-026); until then `Unable to verify`. `Alert found` is never delayed. Confirmation means the printed number was checked, never that the medicine is genuine or safe.
 - A user-typed or user-corrected batch is never OCR evidence and never corroborates the product; it uses the same matching and abstention rules and stays labelled by `BatchSource`. OCR scores are never evidence of identity.
-- The held-out photographs listed in `evaluation/heldout_ids.txt` are never opened or processed until the design is frozen (`--include-heldout`, once).
+- The photographs listed in `evaluation/heldout_ids.txt` were reserved, then processed once on 2026-11-15 (`docs/HELDOUT_EVALUATION.md`). They are now spent: never use them to tune or choose between designs. Any future held-out claim needs a fresh, labelled set.
 - Never present accuracy numbers unless produced by an actual evaluation run recorded per `docs/EVALUATION.md`.
 
 ## Dataset rules

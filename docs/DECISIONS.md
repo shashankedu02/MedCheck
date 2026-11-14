@@ -17,7 +17,7 @@ States: **Confirmed** (owner requirement), **Adopted** (engineering default chos
 | D-011 | Barcode/QR | Confirmed | Out of scope |
 | D-012 | Dataset hash | Adopted | Source SHA-256 pinned in `config.py`; canonical hash in `data/dataset_manifest.json`; loader fails closed |
 | D-013 | Thresholds and limits | Adopted (UNCALIBRATED) | Values live in `medcheck/config.py`, labelled UNCALIBRATED; never presented as validated |
-| D-014 | 60-image evaluation | OPEN | Not performed; no metrics may be claimed. Tooling provided in M6 |
+| D-014 | 60-image evaluation | OPEN | Not performed; no metrics may be claimed. Tooling provided in M6. A one-time diagnostic run on 7 reserved photos was done on 2026-11-15 (`docs/HELDOUT_EVALUATION.md`); it is not the protocol |
 | D-015 | Canonical dataset | Confirmed | Official extraction is the immutable source; canonical CSV built by `scripts/build_dataset.py` (drop `Portal Page`, each embedded line break -> one space, nothing else) |
 | D-016 | Source anomalies | Confirmed | Serials 72, 121, 136, 150, 152, 153 preserved verbatim; never corrected |
 | D-017 | Batch comparison key | Adopted | NFKC, uppercase, keep only letters and digits (punctuation/spaces/trailing commas are formatting). Validated: no collisions among the 220 dataset batches |

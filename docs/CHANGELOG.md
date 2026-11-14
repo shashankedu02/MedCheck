@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-15 - reserved-photo evaluation and owner browser tests
+- One-time run of the unchanged pipeline (`c83ecf3`) on the 7 reserved photos: `docs/HELDOUT_EVALUATION.md`. 0 wrong batches among 4 certain references, 1 exact, 3 abstained; a likely wrong truncated reading (T009) was withheld by D-026. Records only; no tuning.
+- The owner's four manual browser tests recorded in `docs/EVALUATION.md` (user-performed; not accuracy evidence).
+- The reserved photographs are now spent.
+
 ## 2026-11-15 - D-026: clean negatives need the user's confirmation
 - A loosely cropped T003 was read as `HLA50019` by both OCR views (true `HLAS0019`), shown as "read consistently" and gave `No alert found`. Reproduced; root cause and corrected claims in `docs/V2_REVIEW.md` (addendum).
 - No `No alert found` / `Expired` for any batch string (OCR-read, corrected or typed) until the user has compared it with the pack and confirmed; `Unable to verify` until then; `Alert found` never delayed. Label "read consistently" replaced by "agreed by the OCR passes - not yet checked against the pack". Matching, thresholds, dataset unchanged; no automatic S/5 substitution.
