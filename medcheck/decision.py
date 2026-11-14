@@ -141,6 +141,12 @@ def _decide_core(
     )
 
 
+CONFIRMATION_MEANING = "Confirming means you checked the printed batch number; it does not show the medicine is genuine or safe."
+_CONFIRM_NOTE = (
+    "You confirmed that this batch number matches the one printed on the pack. "
+    "That confirms the printed number only; it does not show the medicine is genuine or safe."
+)
+
 _SOURCE_NOTE = {
     BatchSource.USER_CORRECTED: "The batch number was corrected by you; it is not exactly what was read from the photo. This result applies to the batch you entered.",
     BatchSource.USER_ENTERED: "The batch number was typed by you; it was not read from the photo. This result applies to the batch you entered.",
@@ -163,22 +169,32 @@ def decide(
 
     * A user-supplied batch never counts as OCR evidence and goes through exactly the same matching
       (collision, near-neighbour abstention, corroboration from the *photo's* text).
-    * A clean negative (No alert found / Expired) for a user-supplied batch needs the user to confirm
-      they compared it with the pack, because a typing error would otherwise produce false reassurance.
+    * A clean negative (No alert found / Expired) for ANY batch string, OCR-read or user-supplied, needs the user to confirm
+      they compared it with the pack (D-026): OCR can misread look-alike characters consistently, and a typing error would
+      equally produce false reassurance. `Alert found` needs no confirmation.
     * Every decision that used a batch records which batch string was matched and where it came from.
     """
     manual = batch_source is not BatchSource.OCR
-    if (manual and system_failure is None and batch_state is FieldState.READ and match is not None
-            and match.outcome is MatchOutcome.NO_MATCH and not entry_confirmed):
-        return replace(
-            _unable(
-                "manual_entry_unconfirmed",
-                "No listed batch matches the number you entered, but a typing error could hide a match. "
-                "Compare the number with the pack and tick the confirmation box to continue.",
-                evidence=match.evidence,
-            ),
-            batch_source=batch_source,
-            batch_as_read=batch_raw,
+    clean_negative = (system_failure is None and batch_state is FieldState.READ and match is not None
+                      and match.outcome is MatchOutcome.NO_MATCH)
+    if clean_negative and not entry_confirmed:
+        # D-026: no clean negative (No alert found / Expired) is shown for ANY batch string, OCR-read or typed, until the
+        # user has compared it with the pack. Two engines can agree on the same wrong look-alike character (HLA50019 for
+        # HLAS0019) and nothing in the data can reveal it when no listed batch is nearby. Alerts are not delayed.
+        if manual:
+            code = "manual_entry_unconfirmed"
+            why = (f"No listed batch matches the number you entered, but a typing error could hide a match. "
+                   f"Compare the number with the pack and tick the confirmation box to continue. {CONFIRMATION_MEANING}")
+        else:
+            code = "ocr_batch_unconfirmed"
+            why = (f"The batch number was read from the photo as '{batch_raw}', and no listed batch matches or resembles it. "
+                   "OCR can misread look-alike characters (S and 5, O and 0, I and 1), so 'No alert found' is shown only after "
+                   "you compare this number with the one printed on the pack, correct it if needed, and confirm it below. "
+                   f"{CONFIRMATION_MEANING}")
+        return Decision(
+            status=Status.UNABLE_TO_VERIFY, reason_code=code, headline=Status.UNABLE_TO_VERIFY.value, explanation=why,
+            caveats=(f"Only the {dataset_period} CDSCO NSQ list was checked.", LIMITATION_TEXT),
+            evidence=match.evidence, batch_source=batch_source, batch_as_read=batch_raw,
         )
     d = _decide_core(
         system_failure=system_failure, batch_state=batch_state, match=match, expiry=expiry,
@@ -187,9 +203,12 @@ def decide(
     if d.is_system_error or batch_state is not FieldState.READ or match is None:
         return d
     explanation, caveats = d.explanation, d.caveats
-    if d.status is Status.NO_ALERT_FOUND and batch_raw:
-        explanation += f" Batch checked: {batch_raw}. Compare it with the number printed on the pack."
+    if d.status in (Status.NO_ALERT_FOUND, Status.EXPIRED) and entry_confirmed:
+        if d.status is Status.NO_ALERT_FOUND and batch_raw:
+            explanation += f" Batch checked: {batch_raw} (confirmed by you against the pack)."
+        caveats = (_CONFIRM_NOTE, *caveats)
     if manual:
         explanation = explanation.replace("The batch number read from the photo", "The batch number you entered")
         caveats = (_SOURCE_NOTE[batch_source], *caveats)
-    return replace(d, explanation=explanation, caveats=caveats, batch_source=batch_source, batch_as_read=batch_raw)
+    return replace(d, explanation=explanation, caveats=caveats, batch_source=batch_source, batch_as_read=batch_raw,
+                   batch_confirmed=bool(entry_confirmed and d.status in (Status.NO_ALERT_FOUND, Status.EXPIRED)))

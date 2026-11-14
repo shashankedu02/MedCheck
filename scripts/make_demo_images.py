@@ -24,9 +24,9 @@ DEMO_SET: dict[str, tuple[list[str], str, str]] = {
     "2_alert_found_trailing_comma.png": (
         ["Telmisartan & Amlodipine Tablets IP", "B.No.: GTF2327C    Mfg: 10/2025", "Exp: 09/2027"],
         "Alert found", "serial 150 (published batch ends with a comma; punctuation ignored)"),
-    "3_no_alert_found.png": (
+    "3_no_alert_after_confirmation.png": (
         ["Paracetamol Tablets IP 500 mg", "B.No.: ZX99001Q    Mfg: 01/2026", "Exp: 12/2028"],
-        "No alert found", "batch is not in the August 2026 list"),
+        "Unable to verify", "batch not in the August 2026 list: 'No alert found' appears only after you confirm the batch against the pack"),
     "4_unable_batch_alone.png": (
         ["Paracetamol Tablets IP 500 mg", "B.No.: TG261185    Mfg: 05/2026", "Exp: 04/2028"],
         "Unable to verify", "listed batch but the product does not match: batch alone never alerts"),

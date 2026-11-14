@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-15 - D-026: clean negatives need the user's confirmation
+- A loosely cropped T003 was read as `HLA50019` by both OCR views (true `HLAS0019`), shown as "read consistently" and gave `No alert found`. Reproduced; root cause and corrected claims in `docs/V2_REVIEW.md` (addendum).
+- No `No alert found` / `Expired` for any batch string (OCR-read, corrected or typed) until the user has compared it with the pack and confirmed; `Unable to verify` until then; `Alert found` never delayed. Label "read consistently" replaced by "agreed by the OCR passes - not yet checked against the pack". Matching, thresholds, dataset unchanged; no automatic S/5 substitution.
+- Evaluation tooling records withheld negatives (`ocr_batch_unconfirmed`) and scores them Inconclusive.
+
 ## 2026-11-15 - V2 manual-testing review (D-025)
 - Diagnosed the startup `ImportError` (stale server modules after a code update; reproduced); the app now shows a restart instruction.
 - Speed: bounded ONNX threads (removes 10-20x outliers, same text), engine warm-up at start, Tesseract concurrent with RapidOCR (-26% in an interleaved A/B).

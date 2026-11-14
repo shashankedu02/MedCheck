@@ -53,8 +53,12 @@ def test_alert_found_for_listed_batch_with_product(pipe):
 
 def test_no_alert_for_unlisted_batch(pipe):
     r = pipe.check(label("Paracetamol Tablets IP 500 mg", "B.No.: ZX99001Q    Mfg: 01/2026", "Exp: 12/2028"))
-    assert r.decision.status is Status.NO_ALERT_FOUND
-    assert "2026" in " ".join(r.decision.caveats) and "safe" not in r.decision.headline.lower()
+    # D-026: the OCR-read batch must be compared with the pack before a clean negative is shown
+    assert r.decision.status is Status.UNABLE_TO_VERIFY and r.decision.reason_code == "ocr_batch_unconfirmed"
+    assert r.match.outcome.value == "no_match" and r.extraction.batch.raw == "ZX99001Q"
+    done = pipe.verify_manual(r, r.extraction.batch.raw, confirmed=True)
+    assert done.decision.status is Status.NO_ALERT_FOUND and done.decision.batch_confirmed
+    assert "2026" in " ".join(done.decision.caveats) and "safe" not in done.decision.headline.lower()
 
 
 def test_unable_when_no_batch_label(pipe):
@@ -71,7 +75,9 @@ def test_unable_for_confusable_collision_serials_38_157(pipe):
 
 def test_expired_is_never_emitted_while_policy_unapproved(pipe):
     r = pipe.check(label("Paracetamol Tablets IP 500 mg", "B.No.: ZX99001Q    Mfg: 01/2019", "Exp: 01/2020"))
-    assert r.decision.status is Status.NO_ALERT_FOUND  # month-only expiry policy is OPEN
+    assert r.decision.status is Status.UNABLE_TO_VERIFY  # not Expired, and the negative still awaits confirmation
+    done = pipe.verify_manual(r, r.extraction.batch.raw, confirmed=True)
+    assert done.decision.status is Status.NO_ALERT_FOUND  # month-only expiry policy is OPEN
 
 
 def test_product_name_alone_cannot_alert(pipe):

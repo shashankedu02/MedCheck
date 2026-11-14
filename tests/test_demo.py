@@ -14,6 +14,7 @@ from medcheck.pipeline import MedCheckPipeline  # noqa: E402
 
 
 ALERT_SERIALS = {"1_alert_found.png": 4, "2_alert_found_trailing_comma.png": 150}
+CONFIRMED_HEADLINE = {"3_no_alert_after_confirmation.png": "No alert found"}  # headline after the user confirms the batch
 
 
 def _ok():
@@ -31,5 +32,9 @@ def test_every_demo_image_produces_its_documented_result(tmp_path):
     for name, (headline, _why) in expected.items():
         res = pipe.check((tmp_path / name).read_bytes())
         assert res.decision is not None and res.decision.headline == headline, (name, res.decision)
+        if name in CONFIRMED_HEADLINE:  # D-026: a clean negative needs the user's confirmation of the printed batch
+            assert res.decision.reason_code == "ocr_batch_unconfirmed"
+            done = pipe.verify_manual(res, res.extraction.batch.raw, confirmed=True)
+            assert done.decision.headline == CONFIRMED_HEADLINE[name], (name, done.decision)
         if name in ALERT_SERIALS:  # the README names the matched serial
             assert res.matched_record is not None and res.matched_record.serial == ALERT_SERIALS[name], name

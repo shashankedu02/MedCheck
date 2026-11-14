@@ -28,6 +28,7 @@ ALLOWED_NEGATIONS = (
     "does not mean the medicine is safe, genuine or free of quality problems",
     "does not test medicine quality or authenticity",
     "not an authenticity or safety test",
+    "it does not show the medicine is genuine or safe",
 )
 BANNED = re.compile(r"\b(safe|genuine|authentic\w*|counterfeit|fake|guarantee\w*|free (of|from) defects)\b", re.I)
 
@@ -41,7 +42,8 @@ def extraction(batch_state=FieldState.READ):
 def result_for(outcome, batch_state=FieldState.READ, serial=None, record=None):
     match = None if batch_state is not FieldState.READ else MatchAssessment(outcome, "t", matched_serial=serial, evidence=("Evidence line.",))
     exp = ExpiryAssessment(ExpiryOutcome.UNDETERMINED, "04/2028", "Printed expiry reads 04/2028. Policy not approved.")
-    d = decide(system_failure=None, batch_state=batch_state, match=match, expiry=exp, dataset_period="AUG-2026")
+    d = decide(system_failure=None, batch_state=batch_state, match=match, expiry=exp, dataset_period="AUG-2026",
+               entry_confirmed=True)  # fixture for rendering: a clean negative that the user has already confirmed
     return ScanResult(decision=d, extraction=extraction(batch_state), match=match, matched_record=record, expiry=exp,
                       engine_version="tesseract 5.5.3", variants_used=("gray",), ocr_passes=8)
 
@@ -81,7 +83,7 @@ def test_alert_found_rendering_shows_matched_record():
 
 def test_no_alert_is_neutral_not_green_and_has_disclaimer():
     at = run_with(result_for(MatchOutcome.NO_MATCH))
-    assert at.info and any("No alert found" in i.value for i in at.info)
+    assert any(i.value.startswith("**No alert found**") for i in at.info)  # the HEADLINE, not the page disclaimer
     assert not at.success and not at.error
     text = all_text(at)
     assert "does not mean the medicine is safe, genuine or free of quality problems" in text and "AUG-2026" in text
@@ -161,7 +163,15 @@ def test_upload_flow_no_alert_is_neutral():
     from tests.helpers import encode, render_label
     blob = encode(render_label(["Paracetamol Tablets IP 500 mg", "B.No.: ZX99001Q    Mfg: 01/2026", "Exp: 12/2028"]), "PNG")
     at = _upload_and_check(blob)
-    assert any("No alert found" in i.value for i in at.info) and not at.success
+    # D-026: first the app asks for the pack comparison; no clean negative and no neutral "No alert found" box yet
+    assert not any(i.value.startswith("**No alert found**") for i in at.info)
+    assert any(w.value.startswith("**Unable to verify**") and "compare this number with the one printed on the pack" in w.value for w in at.warning)
+    assert any("Next step" in i.value for i in at.info) and at.text_input(key="manual_text").value == "ZX99001Q"
+    at.checkbox(key="manual_confirmed").check().run()
+    _button(at, "Check this batch number").click().run()
+    assert any(i.value.startswith("**No alert found**") for i in at.info) and not at.success
+    assert at.session_state["result"].decision.batch_confirmed and at.session_state["result"].manual.source.value == "ocr"
+    assert "confirmed by you against the pack" in all_text(at)
 
 
 def test_upload_flow_corrupt_file_shows_friendly_error():
@@ -244,3 +254,43 @@ def test_editing_the_batch_clears_the_confirmation_tick():
     assert at.checkbox(key="manual_confirmed").value is False
     _button(at, "Check this batch number").click().run()
     assert at.session_state["result"].decision.reason_code == "manual_entry_unconfirmed"
+
+
+# ---- D-026 in the UI ----
+def _unconfirmed_ocr_negative():
+    """A cleanly OCR-read batch with no listed match, exactly as pipeline.check() now returns it."""
+    from medcheck.decision import decide as _decide
+
+    match = MatchAssessment(MatchOutcome.NO_MATCH, "t", evidence=("Evidence line.",))
+    exp = ExpiryAssessment(ExpiryOutcome.UNDETERMINED, "04/2028", "Policy not approved.")
+    d = _decide(system_failure=None, batch_state=FieldState.READ, match=match, expiry=exp, dataset_period="AUG-2026",
+                batch_raw="TG261185")
+    return ScanResult(decision=d, extraction=extraction(FieldState.READ), match=match, expiry=exp, engine_version="x", ocr_passes=2)
+
+
+def test_unconfirmed_ocr_negative_is_unable_to_verify_with_clear_instructions():
+    at = run_with(_unconfirmed_ocr_negative())
+    assert any(w.value.startswith("**Unable to verify**") for w in at.warning)
+    assert not any(i.value.startswith("**No alert found**") for i in at.info)
+    text = all_text(at)
+    assert "compare this number with the one printed on the pack" in text
+    assert "Confirming means you checked the printed batch number; it does not show the medicine is genuine or safe" in text
+    assert "agreed by the OCR passes - not yet checked against the pack" in text and "read consistently" not in text
+    assert at.text_input(key="manual_text").value == "TG261185" and at.checkbox(key="manual_confirmed").value is False
+    assert any("I compared this number with the one printed on the pack" in c.label for c in at.checkbox)
+
+
+def test_pressing_the_button_without_ticking_keeps_unable_to_verify():
+    from dataclasses import replace
+
+    unlisted = ExtractionResult(BatchField(FieldState.READ, "ZX99001Q", batch_key("ZX99001Q")), DateField(FieldState.READ, "04/2028"),
+                                DateField(FieldState.NOT_FOUND), "Paracetamol Tablets IP 500 mg", 2)
+    at = run_with(replace(_unconfirmed_ocr_negative(), extraction=unlisted))
+    _button(at, "Check this batch number").click().run()
+    assert at.session_state["result"].decision.status is Status.UNABLE_TO_VERIFY  # cannot confirm -> stays unable
+    assert at.session_state["result"].decision.reason_code == "ocr_batch_unconfirmed"
+
+
+def test_ocr_alert_is_shown_immediately_without_any_confirmation():
+    at = run_with(result_for(MatchOutcome.CONFIRMED, serial=4, record=RECORD))
+    assert at.error and "Alert found" in at.error[0].value and not at.checkbox[0].value  # nothing was ticked
