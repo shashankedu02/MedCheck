@@ -35,6 +35,8 @@ All milestones M0-M6 are complete and committed. The application starts, accepts
 **M7 (real-photograph evaluation workflow)** - `medcheck/real_eval.py`, `scripts/run_evaluation.py`, `scripts/set_ground_truth.py`, `tests/test_real_eval.py` (10 tests). Runs `evaluation/incoming_photos/` through the unchanged pipeline; per-run folders under `evaluation/results/runs/` (never overwritten), latest copies in `evaluation/results/`; ground truth separate (`evaluation/ground_truth.csv`, all Pending). Photos and results are git-ignored (private). Command: `.\.venv\Scripts\python.exe scripts\run_evaluation.py`.
 - First real run (`run_20261114_200938`): 27 files, 27 produced a verification outcome, 0 failures, originals unchanged. **All 27 = Unable to verify** (25 no batch label found, 2 ambiguous batch). OCR text on these photos is mostly noise. No ground truth exists, so nothing is scored; no thresholds or rules were changed in response.
 
+**M8 (OCR investigation, no production change)** - see `docs/OCR_INVESTIGATION.md`; scripts in `experiments/ocr_investigation/` (outputs git-ignored). Held-out T009/T012/T015/T018/T021/T024/T027 never opened. Finding: engine (Tesseract vs a detector-based engine such as RapidOCR) dominates; orientation and crop are secondary; preprocessing/scale/denoise did not matter. Needs owner decision D-022 (new dependency) before implementing.
+
 ## Test results (last run)
 - **Main venv after M7**: `pytest -q` -> **204 passed** (about 117 s). Earlier fresh-venv run before M7: 194 passed.
 - **Fresh venv built only from `requirements.txt`** (before M7): `pytest -q` -> **194 passed** (about 34 s).
@@ -55,4 +57,7 @@ None.
 Windows 11, Python 3.13.5, Tesseract 5.5.3 (`eng`, `osd` only), Git 2.56.1, streamlit 1.67.0, opencv-python-headless 5.0.0.93, numpy 2.5.4, pillow 13.0.0, RapidFuzz 3.14.6, pytest 9.2.0.
 
 ## Next action
+Owner: decide D-022 (RapidOCR dependency) and confirm the 7 reference batches against the physical packs. Then implement V2 per `docs/OCR_INVESTIGATION.md` section 9 (parser first).
+
+(Older) 
 Owner decisions D-007 and D-014 (above); then the Antigravity review.
