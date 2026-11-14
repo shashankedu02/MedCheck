@@ -99,19 +99,25 @@ def test_tampered_dataset_is_system_error(tmp_path):
     assert r.decision.system_failure is SystemFailure.DATASET_INTEGRITY and r.decision.status is None
 
 
-def test_missing_ocr_engine_is_system_error(pipe, monkeypatch):
-    def boom(_):
-        raise OCREngineUnavailable("x")
-    monkeypatch.setattr(pl, "run_ocr", boom)
-    r = pipe.check(label("B.No.: ZX99001Q"))
+def test_no_ocr_engine_at_all_is_system_error(pipe):
+    none = MedCheckPipeline(pipe.dataset, rapid_engine=None, tesseract_engine=None)
+    r = none.check(label("B.No.: ZX99001Q"))
     assert r.decision.system_failure is SystemFailure.OCR_ENGINE_UNAVAILABLE and r.decision.status is None
 
 
-def test_ocr_timeout_is_system_error(pipe, monkeypatch):
-    def boom(_):
-        raise OCRTimeout("x")
-    monkeypatch.setattr(pl, "run_ocr", boom)
-    assert pipe.check(label("B.No.: ZX99001Q")).decision.system_failure is SystemFailure.OCR_TIMEOUT
+def test_tesseract_only_failures_are_system_errors(pipe, monkeypatch):
+    only_tess = MedCheckPipeline(pipe.dataset, rapid_engine=None)
+    monkeypatch.setattr(pl, "run_ocr", lambda *a, **k: (_ for _ in ()).throw(OCREngineUnavailable("x")))
+    assert only_tess.check(label("B.No.: ZX99001Q")).decision.system_failure is SystemFailure.OCR_ENGINE_UNAVAILABLE
+    monkeypatch.setattr(pl, "run_ocr", lambda *a, **k: (_ for _ in ()).throw(OCRTimeout("x")))
+    assert only_tess.check(label("B.No.: ZX99001Q")).decision.system_failure is SystemFailure.OCR_TIMEOUT
+
+
+def test_tesseract_failure_is_not_fatal_while_rapidocr_works(pipe, monkeypatch):
+    monkeypatch.setattr(pl, "run_ocr", lambda *a, **k: (_ for _ in ()).throw(OCREngineUnavailable("x")))
+    r = pipe.check(label("Paracetamol Tablets IP 500 mg", "B.No.: ZX99001Q    Mfg: 01/2026"))
+    assert r.decision.system_failure is None and r.engines == ("rapidocr",)
+    assert any("Tesseract is unavailable" in n for n in r.notes)
 
 
 def test_unexpected_exception_is_internal_error_without_leaking(pipe, monkeypatch, caplog):

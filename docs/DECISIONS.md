@@ -24,7 +24,10 @@ States: **Confirmed** (owner requirement), **Adopted** (engineering default chos
 | D-018 | Confusable collisions | Adopted | An exact key match is not confirmable if a *different* dataset row has the same confusable-folded key (e.g. serials 38 and 157). Result: `Unable to verify` |
 | D-019 | Alert corroboration | Adopted | See `docs/MATCHING.md`: unique exact key + product identity evidence (brand or active-ingredient match, no strength conflict); short batches need stronger evidence |
 | D-020 | System errors | Adopted | System failures are a separate result type (`Decision.system_failure`), never a status |
-| D-021 | Manual correction UI | Not adopted | Out of scope for v1; no user editing of OCR fields |
+| D-021 | Manual correction UI | Superseded by D-024 | Was out of scope for v1; adopted in V2 with provenance and safeguards |
+| D-022 | RapidOCR as primary OCR engine | Approved by owner (conditions met, see below) | Evidence: `docs/OCR_INVESTIGATION.md`. Conditions: pinned dependencies, documented installation/model/licence/size/offline operation, Tesseract retained as additional evidence and fallback, no weakening of safeguards. Details: `docs/OCR_ENGINES.md` |
+| D-023 | Cascade, agreement and misread safeguards | Adopted | Two RapidOCR views (full frame, pack crop) plus Tesseract on the crop; rotation retries only when no batch label was found; one bounded confirmation pass when exactly one reading has single-pass support; strict agreement unchanged (any disagreement is AMBIGUOUS); near-neighbour abstention unchanged (edit distance 2 for keys of 6+ characters); engine scores never used as evidence; `No alert found` shows the batch checked; model files hash-verified before loading |
+| D-024 | Manual batch entry | Adopted | `BatchSource` = ocr / user_corrected / user_entered kept on every decision; the typed value never becomes OCR evidence and never corroborates the product; same matching, collision and abstention rules; a clean negative for a typed batch needs the user's confirmation |
 
 ## Approval protocol for OPEN items
 Record owner, date, decision, rationale, affected docs and tests. Agents must not turn an OPEN item into an approved one.

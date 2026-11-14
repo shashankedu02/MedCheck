@@ -1,0 +1,12 @@
+test_id,reference_batch,tier,note
+T003,HLAS0019,certain,read by eye from a zoomed crop by an AI model; owner to confirm against the physical pack
+T006,5BA1617,certain,same
+T010,BEC1106,certain,same
+T011,5BA1447,certain,same
+T013,25S3GCA146,certain,same
+T014,CP50097,certain,same
+T026,18261604A,certain,same
+T004,INA26003,probable,not scored: last characters not fully clear by eye
+T016,SIL536,probable,not scored
+T022,SIN552,probable,not scored
+T019,SIH1166A,probable,read by eye from the rotated crop AFTER the V2 run had produced it; block is complete (not cut off); not scored

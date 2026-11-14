@@ -38,6 +38,9 @@ Code: `medcheck/real_eval.py` (no matching logic of its own), `scripts/run_evalu
 `--rescore` re-applies current labels to a past run's recorded outputs as a new run, without re-processing.
 - Extracted product/manufacturer information is only the raw OCR text (truncated, in the CSV); there is no manufacturer extractor. The matched dataset record's product and manufacturer are shown separately when an alert fires.
 - Do not tune thresholds on these photographs unless they are designated `dev` under the protocol above.
+- **Held-out set.** `evaluation/heldout_ids.txt` reserves T009, T012, T015, T018, T021, T024, T027. `run_evaluation.py` skips them by default: the files are not opened, no placeholder label is created and the report names the exclusion. They are processed only with `--include-heldout`, once, after the design is frozen. Rescoring also excludes them.
+- **Independent batch reference.** `evaluation/reference_batches.csv` holds batches read by eye from zoomed crops (not from MedCheck output). Only tier `certain` is scored (`exact`, `incorrect`, `ambiguous`, `not_found`); `probable` rows are shown as `unscored`. The reference was produced by an AI model reading re-encoded photos and is **awaiting owner confirmation against the physical packs**; these counts are diagnostics, not accuracy figures.
+- Records include engine provenance (`engines`, `batch_sources`: every raw reading with the engine and image view that produced it).
 
 ## What is already verified (not an evaluation)
 Unit and integration tests, including synthetic-label runs through real Tesseract and the Streamlit widgets, are described in `docs/TESTING_GUIDELINES.md`.

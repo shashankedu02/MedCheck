@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-14 - V2: RapidOCR integration, glue-aware parser, manual batch entry (D-022..D-024)
+- RapidOCR primary engine (pinned in `requirements-ocr.txt`, offline, model hashes verified), Tesseract retained as extra evidence and fallback; pack-region crop; rotation retries only when no batch label was found; one bounded confirmation pass; strict agreement, near-neighbour abstention, O/0 collision and product corroboration unchanged.
+- Batch parser cuts glued labels (`5BA1617MFD`, `...146M.R`), reads a value on the next line, rejects label words; every reading keeps engine/view provenance.
+- Manual batch entry with `BatchSource` provenance and a confirmation requirement for typed clean negatives; `No alert found` shows the batch checked.
+- Evaluation: held-out photographs excluded by default, independent batch reference scoring. Details: `docs/OCR_ENGINES.md`, `docs/OCR_INVESTIGATION.md`.
+
 ## 2026-11-14 - real-photograph evaluation workflow
 - `scripts/run_evaluation.py`, `scripts/set_ground_truth.py`, `medcheck/real_eval.py`: per-run, non-overwriting CSV/Markdown records for photos in `evaluation/incoming_photos/`; ground truth kept separate and initially Pending. See `docs/EVALUATION.md`.
 

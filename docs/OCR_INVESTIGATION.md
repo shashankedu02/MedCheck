@@ -1,10 +1,10 @@
 # OCR Failure Investigation and V2 Design (diagnostic; no production change)
 
-Status: investigation complete, **nothing implemented**. Production code, thresholds, matching rules, the dataset and the baseline run `run_20261114_200938` are untouched. Experiment scripts: `experiments/ocr_investigation/` (outputs git-ignored). Date: 2026-11-14.
+Status: investigation complete. (Implemented afterwards as V2, see `docs/OCR_ENGINES.md`, D-022..D-024 and `BUILD_PROGRESS.md`; this report is kept as the evidence record and still describes the state at commit `ea045e7`.) Production code, thresholds, matching rules, the dataset and the baseline run `run_20261114_200938` are untouched. Experiment scripts: `experiments/ocr_investigation/` (outputs git-ignored). Date: 2026-11-14.
 
 ## 1. Method and its limits
 - **Split.** Dev = 20 photographs (T001-T008, T010, T011, T013, T014, T016, T017, T019, T020, T022, T023, T025, T026). **Held-out = 7 photographs (T009, T012, T015, T018, T021, T024, T027): never opened, viewed or OCR'd.** `experiments/.../lib.py` refuses to load them. They are reserved for the first evaluation of an implemented V2.
-- **Reference ("ground truth") for batch numbers** was read by eye from zoomed, upright crops (the OCR engine was used only to *locate* the region, never to supply text). Only batches read with certainty are scored: **7 certain** (T003 `HLAS0019`, T006 `5BA1617`, T010 `BEC1106`, T011 `5BA1447`, T013 `25S3GCA146`, T014 `CP50097`, T026 `18261604A`). 3 probable (T004 `INA26003`, T016 `SIL536`, T022 `SIN552`) are reported but not scored. T002, T005, T007, T008, T017, T020, T023 are not reliably readable even by eye (S/5, A/B, I/1 ambiguity, glare). T001 and T025 show no batch on the visible face; T019 is cut off by the frame edge.
+- **Reference ("ground truth") for batch numbers** was read by eye from zoomed, upright crops (the OCR engine was used only to *locate* the region, never to supply text). Only batches read with certainty are scored: **7 certain** (T003 `HLAS0019`, T006 `5BA1617`, T010 `BEC1106`, T011 `5BA1447`, T013 `25S3GCA146`, T014 `CP50097`, T026 `18261604A`). 3 probable (T004 `INA26003`, T016 `SIL536`, T022 `SIN552`) are reported but not scored. T002, T005, T007, T008, T017, T020, T023 are not reliably readable even by eye (S/5, A/B, I/1 ambiguity, glare). T001 and T025 show no batch on the visible face; T019 was thought to be cut off by the frame edge (see erratum).
 - **Small sample.** 7 scored images means every number below is an observation, not an accuracy estimate. This reference was produced by a model reading images, not by checking physical packs or the official list; it is a diagnostic reference, not formal ground truth. No NSQ status of any photo is known.
 - One variable was changed at a time where practical (Exps 1-3, 5, 7); engine comparisons (Exps 9-10) change the engine and extractor together.
 
@@ -68,7 +68,7 @@ Wrong readings observed (reference in brackets): `HLAS50019` [HLAS0019], `5BA13A
 | T014 | Vertical dark print, clear | Correct (also with Tesseract on a tight band) |
 | T016 | Gold, vertical, value on the line after `B.No.` | Nothing (layout) |
 | T017 | Very small strip, blue, vertical | Dates read, batch not |
-| T019 | Block cut by the frame edge, QR code | Truncated; nothing |
+| T019 | QR code beside the block; (see erratum below: the block is complete, not cut off) | Nothing under the investigation setup |
 | T020 | Blue ink partly hidden by foil glare | `B.NO.U` fragment only |
 | T022 | Label and value on separate lines | Nothing (layout) |
 | T023 | Block vertical, partly occluded | Wrong fragment `25020` |
@@ -121,3 +121,6 @@ Change: (a) **Do not require users to set crop boundaries**; auto-crop with a "u
 - Dark-ink-on-gold, glare and cut-off cases remain unreadable by any approach tried; guidance and manual entry are the only remedies.
 - Not tested: perspective/deskew correction, super-resolution, more engines (for example PaddleOCR proper, EasyOCR), crop-after-rotation ordering, and date extraction accuracy.
 - The held-out set remains unused; any further tuning on it would void it.
+
+## Erratum (added during V2 implementation)
+The statement that T019's batch block is cut off by the frame edge was **wrong**. Inspecting the rotated pack crop showed `B.No.: SIH1166A / Mfg. Dt.: JUN.2026 / Exp. Dt.: MAY.2028` complete (upside-down in that rotation). The earlier impression came from my own zoomed reference crop, not from the photo. T019 is therefore not a frame-edge failure; the investigation setup simply did not read it. T019 is recorded in `evaluation/reference_batches.csv` as `probable` (read after the V2 run produced it, so not scored).

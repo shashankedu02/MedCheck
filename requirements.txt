@@ -1,5 +1,6 @@
 # Direct dependencies, pinned to the versions verified together on
 # Windows 11 / Python 3.13.5 / Tesseract 5.5.3 (see BUILD_PROGRESS.md).
+# The primary OCR engine (RapidOCR) is pinned in requirements-ocr.txt and installed with --no-deps (see that file).
 # Tesseract itself is a separate native install and is NOT installed by pip.
 # OCR calls the tesseract executable directly (image via stdin) so no image is written
 # to a temp file; pytesseract is therefore not a runtime dependency.

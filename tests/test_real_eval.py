@@ -179,3 +179,54 @@ def test_records_reflect_the_real_pipeline_not_a_second_algorithm(tmp_path, pipe
     if rec.actual_outcome == "Alert found":
         assert rec.matched_serial == "4" and rec.matched_dataset_product
     assert "Expired" != rec.actual_outcome  # expiry stays disabled
+
+
+# ---- held-out protection and reference scoring (V2) ----
+def test_heldout_photos_are_never_opened_or_processed_by_default(tmp_path, pipe):
+    d = tmp_path / "p"
+    d.mkdir()
+    _img(d / "1.jpeg")
+    _img(d / "9.jpeg")
+    seen = []
+    recs = ev.process_folder(d, lambda b: seen.append(1) or pipe.check(b), "r", {}, skip_ids={"T009"})
+    assert [r.test_id for r in recs] == ["T001"] and len(seen) == 1
+
+    results, gtf, held = tmp_path / "res", tmp_path / "gt.csv", tmp_path / "held.txt"
+    held.write_text("# reserved\n9\n")
+    args = ["--photos", str(d), "--results", str(results), "--ground-truth", str(gtf), "--heldout", str(held)]
+    assert run_evaluation.main(args) == 0
+    rows = list(csv.DictReader((results / "evaluation_results.csv").open(encoding="utf-8-sig")))
+    assert [r["test_id"] for r in rows] == ["T001"]
+    assert "T009" not in ev.load_ground_truth(gtf)  # not even a placeholder label was created
+    assert "T009" in (results / "evaluation_report.md").read_text(encoding="utf-8")  # the exclusion is stated
+    assert run_evaluation.main(args + ["--include-heldout"]) == 0
+    assert {r["test_id"] for r in csv.DictReader((results / "evaluation_results.csv").open(encoding="utf-8-sig"))} == {"T001", "T009"}
+
+
+def test_the_committed_heldout_list_matches_the_investigation():
+    root = Path(__file__).resolve().parent.parent
+    assert ev.load_heldout(root / "evaluation" / "heldout_ids.txt") == {f"T{i:03d}" for i in (9, 12, 15, 18, 21, 24, 27)}
+
+
+def _rec(tid, outcome="Unable to verify", state="", raw=""):
+    return ev.EvalRecord(test_id=tid, actual_outcome=outcome, batch_state=state, batch_raw=raw)
+
+
+def test_batch_result_scoring_uses_only_certain_references():
+    ref = {"T001": ("HLAS0019", "certain"), "T002": ("INA26003", "probable")}
+    s = lambda r: ev.apply_reference(r, ref).batch_result  # noqa: E731
+    assert s(_rec("T001", state="read", raw="HLAS-0019")) == "exact"  # punctuation is formatting, letters/digits are not
+    assert s(_rec("T001", state="read", raw="HLAS50019")) == "incorrect"
+    assert s(_rec("T001", state="read", raw="HLASO019")) == "incorrect"  # O is not 0
+    assert s(_rec("T001", state="ambiguous")) == "ambiguous"
+    assert s(_rec("T001", state="not_found")) == "not_found"
+    assert s(_rec("T002", state="read", raw="INA26003")) == "unscored"
+    assert s(_rec("T003", state="read", raw="XX1")) == "no_reference"
+    assert s(_rec("T001", outcome=ev.OUT_REJECTED)) == "not_processed"
+
+
+def test_reference_file_is_committed_and_marks_unverified_labels_as_such():
+    root = Path(__file__).resolve().parent.parent
+    ref = ev.load_reference(root / "evaluation" / "reference_batches.csv")
+    assert sum(1 for _b, tier in ref.values() if tier == "certain") == 7
+    assert not set(ref) & ev.load_heldout(root / "evaluation" / "heldout_ids.txt")  # no label for reserved photos

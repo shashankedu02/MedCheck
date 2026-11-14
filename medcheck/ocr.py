@@ -47,6 +47,13 @@ class OCRPass:
     psm: int
     lines: tuple[str, ...]  # raw recognised lines, in reading order
     words: tuple[OCRWord, ...]
+    engine: str = "tesseract"  # which engine produced this pass (provenance)
+    source: str = ""  # image view the pass ran on, e.g. "crop_rot90" (provenance)
+    edge_lines: tuple[int, ...] = ()  # indexes of lines touching the view's edge (possibly cut off)
+
+    @property
+    def pass_id(self) -> str:
+        return f"{self.engine}:{self.source or self.variant_id}"
 
     @property
     def text(self) -> str:

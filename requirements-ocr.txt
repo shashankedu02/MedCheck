@@ -1,0 +1,14 @@
+# Primary OCR engine (V2): RapidOCR + onnxruntime. Install AFTER requirements.txt, WITHOUT dependency resolution:
+#     pip install --no-deps -r requirements-ocr.txt
+# Why --no-deps: rapidocr-onnxruntime declares `opencv-python`, which would install a second cv2 build next to the
+# project's opencv-python-headless (same module, 5.0.0.93, already installed). `pip check` therefore reports that one
+# declared requirement as missing; that is expected and harmless. Every real dependency is pinned here.
+# Models ship inside the rapidocr wheel (no download at run time); their SHA-256 are pinned in medcheck/config.py.
+# Verified together on Windows 11 / Python 3.13.5. Licences: see docs/OCR_ENGINES.md.
+rapidocr-onnxruntime==1.2.3
+onnxruntime==1.32.0
+flatbuffers==25.12.19
+pyclipper==1.4.0
+PyYAML==6.0.3
+shapely==2.2.0
+six==1.17.0

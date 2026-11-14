@@ -9,8 +9,8 @@ import hashlib
 
 import streamlit as st
 
-from medcheck.models import FieldState, Status
-from medcheck.pipeline import MedCheckPipeline, ScanResult
+from medcheck.models import BatchSource, FieldState, Status
+from medcheck.pipeline import ManualEntryError, MedCheckPipeline, ScanResult
 
 st.set_page_config(page_title="MedCheck", page_icon="💊", layout="centered")
 
@@ -59,7 +59,10 @@ def render_details(result: ScanResult) -> None:
     ex = result.extraction
     if ex is not None:
         st.subheader("What was read from the photo")
-        show_field("Batch number", ex.batch.state, ex.batch.raw, ex.batch.reason)
+        show_field("Batch number (OCR)", ex.batch.state, ex.batch.raw, ex.batch.reason)
+        if result.manual is not None and result.manual.source is not BatchSource.OCR:
+            who = "corrected by you" if result.manual.source is BatchSource.USER_CORRECTED else "typed by you"
+            st.text(f"Batch used for this result: {result.manual.raw}   [{who}; not read from the photo]")
         show_field("Expiry date", ex.expiry.state, ex.expiry.raw, ex.expiry.reason)
         show_field("Manufacturing date", ex.manufacturing.state, ex.manufacturing.raw, ex.manufacturing.reason)
 
@@ -89,9 +92,41 @@ def render_details(result: ScanResult) -> None:
 
     if ex is not None:
         with st.expander("Technical details (recognised text)"):
-            st.text(f"OCR engine: {result.engine_version}; passes: {result.ocr_passes}; variants: {', '.join(result.variants_used)}; "
+            st.text(f"OCR engines: {result.engine_version}; passes: {result.ocr_passes}; views: {', '.join(result.variants_used)}; "
                     f"time: {result.elapsed_seconds:.1f}s")
+            if ex.batch.reading_sources:
+                st.text("Batch readings by source: " + " | ".join(f"{raw} [{src}]" for raw, src in ex.batch.reading_sources))
+            if ex.edge_ignored:
+                st.caption("A batch-like line touching the edge of the photo was ignored because it may be cut off: " + " | ".join(ex.edge_ignored))
+            for note in result.notes:
+                st.caption(note)
             st.text(ex.product_text or "(no text recognised)")
+
+
+MANUAL_KEYS = ("manual_text", "manual_confirmed")
+
+
+def render_manual_entry(pipeline: MedCheckPipeline, result: ScanResult) -> None:
+    """Review / correct / enter the batch. The typed value is never OCR evidence: it goes through the same
+    matching rules, and product corroboration still comes only from the photo's text."""
+    ex = result.extraction
+    if result.rejection is not None or ex is None:
+        return
+    st.subheader("Check or enter the batch number yourself")
+    st.caption(
+        "Compare the number below with the one printed on the pack. If it is wrong or missing, type it exactly as printed "
+        "(keep letters and digits as they are: O is not 0, I is not 1)."
+    )
+    if "manual_text" not in st.session_state:
+        st.session_state["manual_text"] = ex.batch.raw if ex.batch.state is FieldState.READ and ex.batch.raw else ""
+    st.text_input("Batch number as printed on the pack", key="manual_text", max_chars=30)
+    st.checkbox("I compared this number with the pack", key="manual_confirmed")
+    if st.button("Check this batch number"):
+        try:
+            st.session_state["result"] = pipeline.verify_manual(result, st.session_state["manual_text"], bool(st.session_state.get("manual_confirmed")))
+            st.rerun()
+        except ManualEntryError as exc:
+            st.warning(str(exc))
 
 
 def main() -> None:
@@ -130,6 +165,8 @@ def main() -> None:
     if st.session_state.get("result_digest") != digest and st.session_state.get("result_digest") is not None:
         st.session_state.pop("result", None)  # the image changed or was removed: drop the old result
         st.session_state["result_digest"] = None
+        for k in MANUAL_KEYS:
+            st.session_state.pop(k, None)
 
     if data is not None:
         try:
@@ -140,14 +177,19 @@ def main() -> None:
             with st.spinner("Reading the photo..."):
                 st.session_state["result"] = pipeline.check(data)
                 st.session_state["result_digest"] = digest
+                for k in MANUAL_KEYS:
+                    st.session_state.pop(k, None)
 
     result = st.session_state.get("result")
     if result is not None:
         render_status(result, period)
         render_details(result)
+        render_manual_entry(pipeline, result)
         if st.button("Clear and start over"):
             st.session_state.pop("result", None)
             st.session_state["result_digest"] = None
+            for k in MANUAL_KEYS:
+                st.session_state.pop(k, None)
             st.rerun()
     elif data is None:
         st.caption("Tip: photograph the line that says 'B.No.' or 'Batch No.' in good light, in focus, filling most of the frame.")

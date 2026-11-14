@@ -17,6 +17,10 @@ Run everything: `.\.venv\Scripts\python.exe -m pytest -q` (about a minute; the S
 | `tests/test_evaluation.py` | Metric arithmetic on made-up rows, abstentions in denominators, CLI behaviour |
 | `tests/test_demo.py` | Every README demo image gives its documented headline |
 | `tests/test_docs.py` | Relative links in live documentation resolve |
+| `tests/test_v2_parser_and_misreads.py` | Glue-aware parser (`5BA1617MFD`, `...146M.R`), label words never a batch, value on next line, raw strings preserved, sentence-fragment/garbage guards (`30 deg C. Protect`), every listed batch passes the guards, the investigation's known wrong readings (`HLAS50019`, `5BA13A7`, `INA26083`, `18261604K8`...) abstain against a dataset listing the true batch, strict agreement and provenance, edge-cut lines ignored, engine scores never read by decision code |
+| `tests/test_v2_pipeline.py` | Scripted-engine cascade rules (rotations only when no label found, one bounded confirmation pass, no retries on conflict), provenance, consistent misreads and conflicts never give `No alert found`, engine failure/fallback/system-error semantics, real RapidOCR with the network blocked, model hash pinning and fail-closed tampering, edge-touching line flagged |
+| `tests/test_v2_manual_entry.py` | Typed/corrected/confirmed batch provenance, typed text never OCR evidence or corroboration, confirmation required for typed clean negatives, near-neighbour and 38/157 collision still abstain, `Expired` never, input validation, no logging, pack-region detection |
+| `tests/test_real_eval.py` | Evaluation records, held-out photographs never opened by default, batch scoring against the independent reference, run history, ground-truth handling |
 
 ## Honest scope
 - OCR tests use **synthetic rendered text**. They prove the plumbing and the safety logic, not accuracy on photographs of curved foil, glare or blur. Real-world accuracy is unknown until `docs/EVALUATION.md` is executed.
