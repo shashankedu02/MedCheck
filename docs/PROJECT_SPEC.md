@@ -13,7 +13,7 @@ Build a local-first demonstrator that reads medicine-packaging text from a user-
 7. Return one of four user-facing outcomes with evidence and limitations.
 
 ## Required statuses
-- `Alert found`: identity is sufficiently confirmed against a dataset row that is explicitly classified as NSQ.
+- `Alert found`: the batch read from the photo matches exactly one row of the dataset (every row is an NSQ entry by construction of the CDSCO list) and corroborating product identity is present (`docs/MATCHING.md`).
 - `No alert found`: a sufficiently readable, non-ambiguous batch was checked successfully and no qualifying row matched in the configured snapshot.
 - `Expired`: expiry has been reliably interpreted as expired under an owner-approved policy, and no confirmed NSQ alert takes precedence.
 - `Unable to verify`: OCR, identity, dataset integrity, or policy evidence is insufficient or conflicting.
@@ -27,7 +27,7 @@ Counterfeit detection, authenticity certification, chemical/laboratory testing, 
 Never call a product “safe,” “genuine,” “authentic,” or “free from defects.” Explain that the check covers only the supplied August 2026 snapshot. For uncertainty, direct the user to a pharmacist or qualified healthcare professional; do not advise starting or stopping medication.
 
 ## Evidence and provenance
-The supplied dataset is described as 220 records and 10 columns. This is an inspected input artifact, not independent proof of regulatory authenticity. The audit report's page/field reconciliation figures are reported by that audit; they are not an independent regulatory certification.
+The dataset is 220 records and 10 columns, extracted from the official CDSCO portal (`docs/DATASET.md`). It is a monthly snapshot extraction, not a regulatory certification or a complete regulatory record.
 
 ## Evaluation
-A 60-photo evaluation (30 alert-listed, 30 non-alert) is proposed in the abstract. It has not been performed based on the available evidence. No accuracy, precision, recall, F1, time-saving, or other performance claim may be presented as a result until the protocol is executed and raw outcomes are retained.
+A 60-photo evaluation (30 alert-listed, 30 non-alert) is proposed (`docs/EVALUATION.md`). It has not been performed. No accuracy, precision, recall, F1, time-saving, or other performance claim may be presented as a result until the protocol is executed and raw outcomes are retained.

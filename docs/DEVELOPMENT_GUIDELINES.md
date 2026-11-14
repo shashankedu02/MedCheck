@@ -1,7 +1,7 @@
 # Development Guidelines
 
 ## Working style
-Build one tested vertical slice at a time. Prefer small modules and explicit data contracts over a large monolithic Streamlit script. The user is a beginner; agents must explain the purpose of each change and provide exact PowerShell commands.
+Build one tested vertical slice at a time. Prefer small modules and explicit data contracts over a large monolithic Streamlit script. The owner is a beginner: explain important decisions briefly and give exact PowerShell commands.
 
 ## Repository hygiene
 - Keep source, tests, docs and data in clear directories.
@@ -31,4 +31,4 @@ Build one tested vertical slice at a time. Prefer small modules and explicit dat
 8. Summarize limitations and next step.
 
 ## Git
-Check `git status --short` before work. Use focused commits only after the user approves. Never push or publish without explicit permission.
+Check `git status --short` before work. Commit at the end of each verified milestone (message `M<n>: ...`). Never push or publish without explicit owner permission.

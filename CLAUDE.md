@@ -1,40 +1,50 @@
-# Claude Code Project Instructions
+# MedCheck - Claude Code Project Instructions
 
-## Before changing anything
-1. Inspect the actual repository tree, `git status`, current branch, and existing files.
-2. Read `README.md`, `AGENTS.md`, and the relevant documents under `docs/`.
-3. Treat this documentation as a specification, not proof that implementation exists.
-4. Do not invent existing modules, functions, tests, paths, package versions, or successful test results.
-5. In Plan mode, list files to inspect/change, the intended behavior, risks, tests, and unresolved assumptions. Wait for explicit approval before implementation when the user requests approval-first work.
+MedCheck: photo-based medicine batch verification using local OCR and conservative matching against the CDSCO August 2026 NSQ list. Local-first Streamlit app. **Not** an authenticity, counterfeit, quality or medical-advice tool.
 
-## Authority and conflict handling
-- Safety and privacy constraints in `docs/PROJECT_SPEC.md` take precedence over convenience.
-- `docs/DECISIONS.md` distinguishes approved, proposed, and unresolved decisions. An unresolved item is not permission to choose silently.
-- `docs/MATCHING_DECISION_MATRIX.md` and `docs/EXPIRY_POLICY.md` define the intended decision boundary; do not weaken abstention or create alert matches from product-name similarity alone.
-- If documents conflict, stop and report the conflict. Do not silently reconcile it.
+## Start every session
+1. Read `BUILD_PROGRESS.md` (current milestone, test results, blockers, next action).
+2. Run `git status` and `.venv\Scripts\python.exe -m pytest -q`. Report real results only.
+3. Read the spec for what you touch (map below). Documentation describes intent; **code and test runs are the proof**. Never claim a feature works because it is documented.
+4. If two documents conflict, stop and report it; do not silently reconcile.
 
-## Implementation rules
-- Preserve raw OCR strings; normalize separate comparison copies.
-- Batch number is primary matching evidence. Fuzzy batch matching retrieves candidates only; it never confirms an alert.
-- Never silently replace O/0, I/1, S/5, or B/8.
-- Product name and optional manufacturer are corroborating evidence. Product strength/formulation must be considered where available.
-- Dataset load, schema, or integrity failure is a system failure, never “No alert found.”
-- Keep OCR confidence, field-extraction confidence, string similarity, and identity decision separate.
-- Missing, ambiguous, conflicting, or weak critical evidence must produce abstention (`Unable to verify`) rather than optimistic guessing.
-- Do not claim the app is safe, authentic, genuine, or free of quality defects.
-- Do not persist uploaded images by default; do not log image bytes or sensitive OCR content.
+## Document map (one authoritative file per topic)
+| Topic | File |
+|---|---|
+| Purpose, scope, statuses, safety wording | `docs/PROJECT_SPEC.md` |
+| Modules and data flow | `docs/ARCHITECTURE.md` |
+| Dataset, provenance, hashes, anomalies | `docs/DATASET.md` |
+| Matching, corroboration, decision table | `docs/MATCHING.md` |
+| Expiry policy (OPEN) | `docs/EXPIRY_POLICY.md` |
+| Every decision and its state | `docs/DECISIONS.md` |
+| Security and privacy | `docs/SECURITY_GUIDELINES.md` |
+| Tests | `docs/TESTING_GUIDELINES.md` |
+| 60-image evaluation protocol | `docs/EVALUATION.md` |
+| Independent review process (Antigravity) | `docs/REVIEW_PROCESS.md` |
+| Run, demo, limitations | `README.md` |
+`docs/archive/` is history only; do not follow it over the files above.
 
-## Required workflow
-1. Inspect.
-2. Plan.
-3. Obtain approval if required.
-4. Implement the smallest coherent change.
-5. Add/update tests.
-6. Run relevant tests and report exact commands/results.
-7. Update documentation and decision log.
-8. Summarize changed files, verification performed, limitations, and remaining decisions.
+## Non-negotiable safety rules
+- Four statuses only: `Alert found`, `No alert found`, `Expired`, `Unable to verify`. System failures (dataset, OCR engine, internal) are a **separate** result type, never a status and never "No alert found".
+- Batch number is primary evidence. Product-name similarity alone never alerts. Fuzzy/near-batch matches only retrieve candidates and force abstention; they never confirm.
+- Corroborating identity evidence is required for an alert (`docs/MATCHING.md`). Ambiguous, conflicting, collided or weak evidence -> `Unable to verify`.
+- Never silently substitute O/0, I/1, S/5, B/8. Preserve raw OCR/dataset strings; compare via separate normalized copies. Serials 38/157 are the required collision test.
+- Do not emit `Expired` until the owner approves the month-only expiry policy (D-007, `config.EXPIRY_POLICY_APPROVED`).
+- Never claim safe, genuine, authentic or defect-free; always show the dataset period; no medical advice.
+- No image persistence, no logging of image bytes, filenames or OCR text, no network calls, no telemetry, no cloud OCR. Streamlit stays bound to localhost.
+- Never present accuracy numbers unless produced by an actual evaluation run recorded per `docs/EVALUATION.md`.
 
-## Do not
-- Do not add cloud OCR, accounts, payments, analytics, database, barcode/QR scanning, or unrelated features without approval.
-- Do not change the supplied source dataset to make matching easier.
-- Do not claim evaluation metrics until the 60-image evaluation has actually been conducted and recorded.
+## Dataset rules
+`data/cdsco_august_2026_nsq_official_extraction.csv` is immutable (hash pinned in `medcheck/config.py`). The app reads only `data/cdsco_august_2026_nsq.csv`, generated by `scripts/build_dataset.py`. Never hand-edit data files; never "fix" source anomalies. `data/**` is stored byte-for-byte (`.gitattributes`).
+
+## Working method (milestones)
+Work in small verified milestones: objective -> implement -> run tests -> fix failures -> update docs -> report (files, tests executed, results, limitations) -> update `BUILD_PROGRESS.md` -> commit. Do not start a dependent milestone while a critical failure is open. Ordinary technical decisions: decide, record in `docs/DECISIONS.md`, continue.
+
+## Stop and ask the owner before
+Permanently deleting source files or historical data; overwriting the official extraction; replacing source values with inferred corrections; weakening safety/abstention rules; publishing or deploying; uploading private data anywhere; irreversible changes outside this directory; approving any OPEN decision.
+
+## Conventions
+Python 3.13, virtualenv `.venv`, dependencies pinned in `requirements.txt` (verified together; `pip install -r requirements.txt`). Thresholds live only in `medcheck/config.py` and are labelled UNCALIBRATED. Pure deterministic logic in normalization/matching/decision; the UI holds no matching rules. Type-hint public functions. Tests must be real: no hard-coded results, report only commands actually run.
+
+## Review protocol
+Claude Code owns all edits. Antigravity (or any other reviewer) reads and reports defects per `docs/REVIEW_PROCESS.md`; it never edits files concurrently.

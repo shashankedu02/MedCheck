@@ -1,6 +1,6 @@
 # Matching and Decision Specification (authoritative)
 
-Status: **implemented and tested** (M2-M3). Code: `medcheck/normalization.py`, `product.py`, `matching.py`, `dates.py`, `decision.py`. Tests: `tests/test_normalization_dates.py`, `test_matching.py`, `test_decision.py`. Supersedes the former `MATCHING_LOGIC.md` and `MATCHING_DECISION_MATRIX.md`.
+Status: **implemented and tested** (M2-M3). Code: `medcheck/normalization.py`, `product.py`, `matching.py`, `dates.py`, `decision.py`. Tests: `tests/test_normalization_dates.py`, `test_matching.py`, `test_decision.py`. Supersedes the earlier separate matching-logic and decision-matrix documents (preserved in git history).
 
 ## Principles (non-negotiable)
 Batch number is the primary identity evidence. Product name, strength, form and (optionally) manufacturer only **corroborate**. Product-name similarity alone never alerts. Fuzzy/near-batch similarity retrieves candidates for abstention and display only. Raw strings are preserved; comparison copies are separate. Confusable characters are never silently substituted. OCR confidence, extraction confidence, string similarity and the identity decision are separate quantities and none is a probability.

@@ -1,7 +1,7 @@
 # Security, Privacy and Medical-Safety Guidelines
 
 ## Image and data privacy
-- Do not persist user images by default.
+- Do not persist user images by default. Implemented: images are decoded in memory and passed to Tesseract on stdin (no temp files); the Streamlit server binds to localhost, telemetry is off and uploads are capped (`.streamlit/config.toml`). Verified by tests.
 - Prefer in-memory processing; if temporary files are unavoidable, use controlled random names and guaranteed cleanup.
 - Do not log images, full OCR text, package identifiers or user-provided metadata.
 - Limit upload bytes, pixel dimensions, decompression size, OCR time and preprocessing attempts.
