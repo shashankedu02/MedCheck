@@ -2,3 +2,5 @@
 data/** -text
 *.csv -text
 *.json -text
+# Vendored third-party frontend files are hash-pinned (static/vendor/*/VENDOR.json); store byte-for-byte.
+static/vendor/** -text
