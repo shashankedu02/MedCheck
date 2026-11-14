@@ -20,14 +20,21 @@ except ImportError:  # the code changed on disk while this server kept the old m
     )
     st.stop()
 
-st.set_page_config(page_title="MedCheck", page_icon="💊", layout="centered")
-
 try:  # presentation layer (3D stage, theme, story); the app works without it (MEDCHECK_PLAIN_UI=1, or if it fails to load)
     from medcheck_ui import plain_ui
-    from medcheck_ui.scene import render_scene, status_key
-    from medcheck_ui.theme import render_theme_and_story
 except Exception:  # noqa: BLE001 - any failure here must fall back to the plain interface, never break a check
     def plain_ui() -> bool:  # type: ignore[misc]
+        return True
+
+# the 3D interface uses the full width and keeps the sidebar collapsed; the plain interface is unchanged
+st.set_page_config(page_title="MedCheck", page_icon="💊", layout="centered" if plain_ui() else "wide",
+                   initial_sidebar_state="auto" if plain_ui() else "collapsed")
+
+try:
+    from medcheck_ui.scene import render_scene, status_key
+    from medcheck_ui.theme import render_theme_and_story
+except Exception:  # noqa: BLE001
+    def plain_ui() -> bool:  # type: ignore[misc,no-redef]
         return True
 
 
@@ -237,7 +244,8 @@ def main() -> None:
     stage = None
     if not plain_ui():
         try:
-            render_theme_and_story()
+            render_theme_and_story(len(pipeline.dataset) if pipeline.dataset else None,
+                                   pipeline.dataset.reporting_period if pipeline.dataset else None)
             stage = st.empty()
         except Exception:  # noqa: BLE001 - the interface works without the presentation layer
             stage = None
