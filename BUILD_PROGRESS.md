@@ -4,7 +4,7 @@ Single source of truth for resuming development. Update at the end of every mile
 Run tests with: `.venv\Scripts\python.exe -m pytest -q`
 
 ## Current milestone
-M4 - Image validation, preprocessing, OCR adapter, field extraction (next)
+M5 - Pipeline, Streamlit UI, privacy/error handling (next)
 
 ## Milestones
 | ID | Milestone | Status |
@@ -13,7 +13,7 @@ M4 - Image validation, preprocessing, OCR adapter, field extraction (next)
 | M1 | Reproducible dataset pipeline, manifest/hashes, fail-closed loader | DONE |
 | M2 | Normalization, date parsing, decision engine (truth-table tests) | DONE |
 | M3 | Product parsing and batch matching incl. serial 38/157 collision | DONE |
-| M4 | Image validation, preprocessing, OCR adapter, field extraction | todo |
+| M4 | Image validation, preprocessing, OCR adapter, field extraction | DONE |
 | M5 | Pipeline + Streamlit UI + privacy/error handling | todo |
 | M6 | Evaluation tooling, docs reconciliation, review guide, final README | todo |
 
@@ -27,8 +27,10 @@ M4 - Image validation, preprocessing, OCR adapter, field extraction (next)
 **M3** - `product.py`, `matching.py`, `tests/test_matching.py`, `docs/MATCHING.md` (replaces MATCHING_LOGIC.md + MATCHING_DECISION_MATRIX.md, removed via git rm; recoverable from git history). Serials 38/157 collision enforced in both directions. Tests found and fixed a real gap (serial 145 `DEC-Plus`: a brand-only dataset name produced no identity signal).
 Simulated (no OCR) results: full label text -> 218/220 confirm; product name only -> 204 confirm, 14 short-batch rows need more evidence, 38/157 abstain.
 
+**M4** - `image_input.py`, `preprocessing.py`, `ocr.py`, `extraction.py`; tests `test_image_input.py`, `test_extraction.py`, `test_ocr_preprocessing.py`, `tests/helpers.py`; `docs/ARCHITECTURE.md` rewritten; `requirements.txt` drops pytesseract. Deviation: Tesseract is called directly with the image on stdin so nothing touches disk (pytesseract writes temp files). Real Tesseract ran on a synthetic rendered label (plumbing only, not an accuracy result). Known limit: 2-char batches (serials 24, 26) never extracted.
+
 ## Test results (last run)
-`pytest -q` -> **93 passed** (after M3).
+`pytest -q` -> **148 passed** (after M4, ~6 s).
 
 ## Known blockers
 None.
@@ -46,4 +48,4 @@ None.
 Windows 11, Python 3.13.5, Tesseract 5.5.3 (`eng`, `osd` only), Git 2.56.1, streamlit 1.67.0, opencv-python-headless 5.0.0.93, pandas 3.1.1.
 
 ## Next action
-M4: `medcheck/image_input.py`, `preprocessing.py`, `ocr.py`, `extraction.py` + tests using synthetic rendered images (labelled synthetic; no accuracy claims).
+M5: `medcheck/pipeline.py` (bytes -> Decision, system errors mapped), `app.py` (Streamlit: upload + camera, status, evidence, period, disclaimers), privacy tests, then launch the app for real and verify with AppTest/HTTP.

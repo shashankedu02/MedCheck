@@ -50,6 +50,7 @@ ALLOWED_IMAGE_FORMATS = ("JPEG", "PNG", "WEBP")
 # --- OCR (UNCALIBRATED) -------------------------------------------------------
 OCR_LANGUAGE = "eng"
 OCR_TIMEOUT_SECONDS = 25
+OCR_TOTAL_BUDGET_SECONDS = 60
 OCR_PSM_MODES = (6, 11)  # block of text; sparse text
 MAX_PREPROCESS_VARIANTS = 4
 TESSERACT_CMD_ENV = "MEDCHECK_TESSERACT_CMD"
