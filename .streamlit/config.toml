@@ -1,0 +1,12 @@
+# No telemetry, bounded uploads, local-only by default.
+[browser]
+gatherUsageStats = false
+
+[server]
+maxUploadSize = 10
+enableXsrfProtection = true
+address = "localhost"
+headless = true
+
+[client]
+toolbarMode = "minimal"

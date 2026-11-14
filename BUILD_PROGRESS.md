@@ -4,7 +4,7 @@ Single source of truth for resuming development. Update at the end of every mile
 Run tests with: `.venv\Scripts\python.exe -m pytest -q`
 
 ## Current milestone
-M5 - Pipeline, Streamlit UI, privacy/error handling (next)
+M6 - Evaluation tooling, docs reconciliation, review guide, final README (next)
 
 ## Milestones
 | ID | Milestone | Status |
@@ -14,7 +14,7 @@ M5 - Pipeline, Streamlit UI, privacy/error handling (next)
 | M2 | Normalization, date parsing, decision engine (truth-table tests) | DONE |
 | M3 | Product parsing and batch matching incl. serial 38/157 collision | DONE |
 | M4 | Image validation, preprocessing, OCR adapter, field extraction | DONE |
-| M5 | Pipeline + Streamlit UI + privacy/error handling | todo |
+| M5 | Pipeline + Streamlit UI + privacy/error handling | DONE |
 | M6 | Evaluation tooling, docs reconciliation, review guide, final README | todo |
 
 ## Reports
@@ -29,8 +29,10 @@ Simulated (no OCR) results: full label text -> 218/220 confirm; product name onl
 
 **M4** - `image_input.py`, `preprocessing.py`, `ocr.py`, `extraction.py`; tests `test_image_input.py`, `test_extraction.py`, `test_ocr_preprocessing.py`, `tests/helpers.py`; `docs/ARCHITECTURE.md` rewritten; `requirements.txt` drops pytesseract. Deviation: Tesseract is called directly with the image on stdin so nothing touches disk (pytesseract writes temp files). Real Tesseract ran on a synthetic rendered label (plumbing only, not an accuracy result). Known limit: 2-char batches (serials 24, 26) never extracted.
 
+**M5** - `medcheck/pipeline.py`, `app.py`, `.streamlit/config.toml` (localhost-only, no telemetry, 10 MB upload cap), `tests/test_pipeline.py`, `tests/test_app.py`. Real synthetic labels run through real Tesseract and the real UI widgets (upload, camera, button). All four outcomes plus rejection and every system-failure type verified. Live server launched: health 200, listening on 127.0.0.1 only. Bugs found by tests and fixed: server bound to all interfaces; corrupt upload crashed the preview before the friendly rejection.
+
 ## Test results (last run)
-`pytest -q` -> **148 passed** (after M4, ~6 s).
+`pytest -q` -> **183 passed** (after M5, ~61 s; UI tests are the slow part).
 
 ## Known blockers
 None.
@@ -48,4 +50,4 @@ None.
 Windows 11, Python 3.13.5, Tesseract 5.5.3 (`eng`, `osd` only), Git 2.56.1, streamlit 1.67.0, opencv-python-headless 5.0.0.93, pandas 3.1.1.
 
 ## Next action
-M5: `medcheck/pipeline.py` (bytes -> Decision, system errors mapped), `app.py` (Streamlit: upload + camera, status, evidence, period, disclaimers), privacy tests, then launch the app for real and verify with AppTest/HTTP.
+M6: `scripts/evaluate.py` + metrics tests, `scripts/make_demo_images.py`, README rewrite, CLAUDE.md/AGENTS.md reconcile, archive redundant docs, `docs/REVIEW_PROCESS.md` for Antigravity, drop unused pandas.
