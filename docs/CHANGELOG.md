@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-15 - 3D interface (M14, branch `ui-redesign`, D-029)
+- Frontend only: Components V2 WebGL stage (blister strip) with locally vendored Three.js 0.170.0, theme, story, scan phase tied to the real OCR call, scroll effects, fallbacks (no WebGL, reduced motion, `MEDCHECK_PLAIN_UI=1`, import failure). The browser component receives only a phase and a status name.
+- Audit fixes: static serving configured, lifecycle cleanup, resize/aspect, contrast tests, correct commit reference. No backend, OCR, matching, dataset or evaluation change.
+
 ## 2026-11-15 - completion sprint (M13)
 - D-027: every `Alert found` shows "Check before acting" (batch character by character, product, strength, manufacturer) with the batch read beside the listed batch; listed neighbouring batches are named. Alerts are not delayed; no matching rule or threshold changed.
 - D-028: `medcheck/evaluation.py` counts results awaiting confirmation separately; listed packs misread into unlisted strings are reported as potential misses.

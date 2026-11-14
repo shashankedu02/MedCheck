@@ -3,6 +3,7 @@
 | Layer | Choice | Notes |
 |---|---|---|
 | UI | Streamlit 1.67.0 | `app.py`; `.streamlit/config.toml` binds to localhost, disables telemetry, caps uploads at 10 MB |
+| 3D interface | Three.js 0.170.0 (MIT), vendored in `static/vendor/three/` (no npm, no CDN) | decorative blister-strip scene; integrity-verified download, hash and licence in `VENDOR.json`; served locally by Streamlit static serving; see `docs/UI_UX_GUIDELINES.md` |
 | Language | Python 3.13.5 | tested on Windows 11 |
 | Image I/O | Pillow 13.0.0 | decode, format by content, EXIF orientation, pixel limits |
 | Image processing | opencv-python-headless 5.0.0.93, numpy 2.5.4 | grayscale, CLAHE, Otsu, adaptive threshold |
