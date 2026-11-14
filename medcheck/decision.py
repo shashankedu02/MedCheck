@@ -38,7 +38,7 @@ _SYSTEM_MESSAGES = {
     SystemFailure.DATASET_MISSING: "The NSQ dataset could not be found, so no check was performed.",
     SystemFailure.DATASET_SCHEMA: "The NSQ dataset has an unexpected format, so no check was performed.",
     SystemFailure.DATASET_INTEGRITY: "The NSQ dataset failed its integrity check, so no check was performed.",
-    SystemFailure.OCR_ENGINE_UNAVAILABLE: "The text-recognition engine (Tesseract) is not available, so no check was performed.",
+    SystemFailure.OCR_ENGINE_UNAVAILABLE: "No text-recognition engine (RapidOCR or Tesseract) is available, so no check was performed.",
     SystemFailure.OCR_TIMEOUT: "Text recognition took too long, so no check was performed.",
     SystemFailure.INTERNAL: "An unexpected internal error occurred, so no check was performed.",
 }
@@ -147,6 +147,21 @@ _CONFIRM_NOTE = (
     "That confirms the printed number only; it does not show the medicine is genuine or safe."
 )
 
+def alert_action_check(batch: str | None) -> str:
+    """What the user must check on the pack before acting on an alert. Shown with every alert; it never delays it.
+
+    An alert rests on an exact listed batch plus product words from the photo. A single misread character of an
+    unlisted neighbouring batch of the same product (batches are often numbered in sequence) would pass both, and the
+    product check does not compare the manufacturer. A person comparing the pack with the listed record catches that."""
+    shown = f"exactly '{batch}'" if batch else "exactly the listed batch"
+    return (
+        f"Before acting on this alert, check on the pack that the printed batch number is {shown}, character by character, "
+        "and that the product, strength and manufacturer match the listed record. OCR can misread a single character, and "
+        "neighbouring batches of the same product are usually not listed. If anything differs, this alert does not apply; "
+        "ask a pharmacist if unsure."
+    )
+
+
 _SOURCE_NOTE = {
     BatchSource.USER_CORRECTED: "The batch number was corrected by you; it is not exactly what was read from the photo. This result applies to the batch you entered.",
     BatchSource.USER_ENTERED: "The batch number was typed by you; it was not read from the photo. This result applies to the batch you entered.",
@@ -211,4 +226,5 @@ def decide(
         explanation = explanation.replace("The batch number read from the photo", "The batch number you entered")
         caveats = (_SOURCE_NOTE[batch_source], *caveats)
     return replace(d, explanation=explanation, caveats=caveats, batch_source=batch_source, batch_as_read=batch_raw,
-                   batch_confirmed=bool(entry_confirmed and d.status in (Status.NO_ALERT_FOUND, Status.EXPIRED)))
+                   batch_confirmed=bool(entry_confirmed and d.status in (Status.NO_ALERT_FOUND, Status.EXPIRED)),
+                   action_check=alert_action_check(batch_raw) if d.status is Status.ALERT_FOUND else "")

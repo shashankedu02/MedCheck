@@ -54,6 +54,21 @@ def _fuzzy_limit(length: int) -> int:
     return 2 if length >= 10 else config.FUZZY_BATCH_MAX_DISTANCE
 
 
+def listed_neighbours(index: "DatasetIndex", key: str, exclude: int) -> tuple[int, ...]:
+    """Serials of OTHER listed batches within the retrieval edit distance of `key` (keys of 6+ characters).
+
+    Listed batches of one product are often numbered in sequence (PAK-636 / PAK-637). If a neighbour is listed, an
+    unlisted sibling between or beside them very likely exists, and a one-character misread of that sibling would
+    produce this exact match. Used only to warn; it never changes the match outcome."""
+    limit = _fuzzy_limit(len(key))
+    if not limit:
+        return ()
+    out = [s for s, bk in index.keys.items()
+           if s != exclude and len(bk.key) >= config.SHORT_BATCH_KEY_LENGTH
+           and Levenshtein.distance(key, bk.key, score_cutoff=limit) <= limit]
+    return tuple(sorted(out))
+
+
 def _source_caveats(rec: DatasetRecord, bk: BatchKey) -> tuple[str, ...]:
     out: list[str] = []
     if manufacture_after_expiry(rec.manufacturing_date, rec.expiry_date):
@@ -111,6 +126,13 @@ def match_batch(index: DatasetIndex, batch: BatchKey, ocr_text: str) -> MatchAss
             lines.append("Dosage form in the photo conflicts with the listed form.")
         if short:
             lines.append("Short batch number: stronger identity evidence is required.")
+        neighbours = listed_neighbours(index, batch.key, rec.serial)
+        if neighbours:
+            lines.append(
+                f"Listed serial(s) {', '.join(str(s) for s in neighbours)} have a batch number only one or two characters "
+                "different. Neighbouring batches of the same product exist, so a single misread character could produce this "
+                "match: check every character of the printed batch."
+            )
         ev = tuple(lines)
 
         if ident.has_conflict:

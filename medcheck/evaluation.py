@@ -6,6 +6,15 @@ Conventions (stated so numbers cannot be read more favourably than they are):
   * A wrong clean negative on an alert-listed image (No alert found / Expired) is a false negative and
     is reported separately from abstentions.
   * System errors and rejected uploads are counted separately and also stay in denominators.
+  * Confirmation policy (D-026): an automated run never confirms a batch, so a clean negative is recorded as
+    "Unable to verify" awaiting the user's confirmation (reason `ocr_batch_unconfirmed` / `manual_entry_unconfirmed`).
+    These are counted in their OWN category, split by whether the batch string offered for confirmation equals the
+    true printed batch:
+      - on a NON-listed pack with the correct string: "ready for confirmation" (a careful user then sees No alert found);
+      - on a NON-listed pack with a wrong string: the user must catch the error (reported, never counted as correct);
+      - on a LISTED pack: a POTENTIAL MISS (the listed batch was misread into an unlisted string; if the user confirms
+        without spotting it, the result is a false negative). Reported separately and never hidden as an abstention.
+  * Batch strings are compared on the comparison key (case, spaces and punctuation ignored; look-alikes NOT folded).
 """
 from __future__ import annotations
 
@@ -14,6 +23,9 @@ import statistics
 from dataclasses import dataclass
 
 from .models import Status
+from .normalization import batch_key
+
+AWAITING_CONFIRMATION_CODES = frozenset({"ocr_batch_unconfirmed", "manual_entry_unconfirmed"})
 
 
 @dataclass(frozen=True)
@@ -26,6 +38,18 @@ class EvalRow:
     true_batch: str | None
     batch_read: str | None
     seconds: float
+    reason_code: str = ""  # Decision.reason_code; identifies results awaiting the user's confirmation (D-026)
+
+    @property
+    def awaiting_confirmation(self) -> bool:
+        return self.outcome_kind == "status" and self.status is Status.UNABLE_TO_VERIFY and self.reason_code in AWAITING_CONFIRMATION_CODES
+
+
+def _same_batch(read: str | None, truth: str | None) -> bool | None:
+    """True/False when both strings exist, None when either is missing."""
+    if read is None or truth is None:
+        return None
+    return batch_key(read).key == batch_key(truth).key
 
 
 def wilson(successes: int, n: int, z: float = 1.96) -> tuple[float, float] | None:
@@ -62,11 +86,17 @@ def compute_metrics(rows: list[EvalRow]) -> dict:
     fp = [r for r in non_alerts if is_status(r, Status.ALERT_FOUND)]
     tn = [r for r in non_alerts if is_status(r, Status.NO_ALERT_FOUND)]
     decisive = [r for r in rows if r.outcome_kind == "status" and r.status is not Status.UNABLE_TO_VERIFY]
-    abstained = [r for r in rows if is_status(r, Status.UNABLE_TO_VERIFY)]
+    awaiting = [r for r in rows if r.awaiting_confirmation]
+    abstained = [r for r in rows if is_status(r, Status.UNABLE_TO_VERIFY) and not r.awaiting_confirmation]
+
+    potential_misses = [r for r in alerts if r.awaiting_confirmation]
+    na_awaiting = [r for r in non_alerts if r.awaiting_confirmation]
+    ready = [r for r in na_awaiting if _same_batch(r.batch_read, r.true_batch) is True]
+    wrong_offered = [r for r in na_awaiting if _same_batch(r.batch_read, r.true_batch) is False]
 
     with_truth = [r for r in rows if r.true_batch is not None]
-    exact = [r for r in with_truth if r.batch_read is not None and r.batch_read == r.true_batch]
-    read_wrong = [r for r in with_truth if r.batch_read is not None and r.batch_read != r.true_batch]
+    exact = [r for r in with_truth if _same_batch(r.batch_read, r.true_batch) is True]
+    read_wrong = [r for r in with_truth if _same_batch(r.batch_read, r.true_batch) is False]
 
     times = [r.seconds for r in rows]
     return {
@@ -75,7 +105,12 @@ def compute_metrics(rows: list[EvalRow]) -> dict:
         "non_alert": len(non_alerts),
         "alert_sensitivity": _prop(len(tp), len(alerts)),
         "false_negatives_wrong_clean_negative": len(fn),
-        "alerts_missed_by_abstention": sum(1 for r in alerts if is_status(r, Status.UNABLE_TO_VERIFY)),
+        "potential_misses_awaiting_confirmation": len(potential_misses),
+        "alerts_missed_by_abstention": sum(1 for r in alerts if is_status(r, Status.UNABLE_TO_VERIFY) and not r.awaiting_confirmation),
+        "awaiting_confirmation": _prop(len(awaiting), len(rows)),
+        "non_alert_ready_for_confirmation": _prop(len(ready), len(non_alerts)),
+        "non_alert_wrong_string_offered": len(wrong_offered),
+        "non_alert_awaiting_unlabelled": len(na_awaiting) - len(ready) - len(wrong_offered),
         "alerts_with_wrong_serial": len(wrong_serial),
         "false_positives": len(fp),
         "alert_precision": _prop(len(tp), len(tp) + len(fp) + len(wrong_serial)),
@@ -103,12 +138,16 @@ def format_report(metrics: dict, header: str) -> str:
         f"Images: {metrics['images']} (alert-listed {metrics['alert_listed']}, non-alert {metrics['non_alert']})",
         f"Alert sensitivity (abstentions count as misses): {pct(metrics['alert_sensitivity'])}",
         f"False negatives (wrong clean negative on alert-listed): {metrics['false_negatives_wrong_clean_negative']}",
+        f"POTENTIAL MISSES (alert-listed, misread into an unlisted string, awaiting the user's confirmation): {metrics['potential_misses_awaiting_confirmation']}",
         f"Alert-listed images missed by abstention: {metrics['alerts_missed_by_abstention']}",
+        f"Awaiting the user's confirmation (D-026; never counted as correct): {pct(metrics['awaiting_confirmation'])}",
+        f"Non-alert images ready for confirmation (correct batch string offered): {pct(metrics['non_alert_ready_for_confirmation'])}; "
+        f"wrong string offered: {metrics['non_alert_wrong_string_offered']}; no true batch label: {metrics['non_alert_awaiting_unlabelled']}",
         f"Alerts with wrong serial: {metrics['alerts_with_wrong_serial']}",
         f"False positives (alert on non-alert image): {metrics['false_positives']}",
         f"Alert precision: {pct(metrics['alert_precision'])}",
-        f"Clean 'No alert found' on non-alert images: {pct(metrics['specificity_clean_no_alert_on_non_alert'])}",
-        f"Abstention rate: {pct(metrics['abstention_rate'])}",
+        f"Clean 'No alert found' on non-alert images (only possible with recorded user confirmations): {pct(metrics['specificity_clean_no_alert_on_non_alert'])}",
+        f"Abstention rate (excluding results awaiting confirmation): {pct(metrics['abstention_rate'])}",
         f"Decisive coverage: {pct(metrics['coverage_decisive'])}",
         f"System errors: {metrics['system_errors']}; rejected uploads: {metrics['rejected_uploads']}",
         f"Batch exact accuracy on labelled images: {pct(metrics['batch_exact_accuracy_all_labelled'])}; batch read but wrong: {metrics['batch_confidently_wrong']}",

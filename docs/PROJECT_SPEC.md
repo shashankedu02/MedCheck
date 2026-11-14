@@ -30,4 +30,4 @@ Never call a product “safe,” “genuine,” “authentic,” or “free from
 The dataset is 220 records and 10 columns, extracted from the official CDSCO portal (`docs/DATASET.md`). It is a monthly snapshot extraction, not a regulatory certification or a complete regulatory record.
 
 ## Evaluation
-A 60-photo evaluation (30 alert-listed, 30 non-alert) is proposed (`docs/EVALUATION.md`). It has not been performed. No accuracy, precision, recall, F1, time-saving, or other performance claim may be presented as a result until the protocol is executed and raw outcomes are retained.
+Physical NSQ-listed packs cannot be obtained, so evidence is kept in separate categories that are never merged into one percentage: real photographs of ordinary packs, synthetic test fixtures, programmatic tests, verified real positives if any, and a human-confirmation study (`docs/EVALUATION.md`, `docs/EVALUATION_STRATEGY.md`). The formal study (D-014) has not been performed. No accuracy, precision, recall, F1, time-saving, or other performance claim may be presented until a recorded evaluation produces it, and a fixture pass rate is never an accuracy figure.

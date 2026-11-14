@@ -49,6 +49,8 @@ def render_status(result: ScanResult, period: str) -> None:
         st.error(f"**{d.headline}**\n\n{d.explanation}")
     elif d.status is Status.ALERT_FOUND:
         st.error(f"**{d.headline}**\n\n{d.explanation}")
+        if d.action_check:
+            st.warning(f"**Check before acting:** {d.action_check}")
     elif d.status is Status.EXPIRED:
         st.warning(f"**{d.headline}**\n\n{d.explanation}")
     elif d.status is Status.UNABLE_TO_VERIFY:
@@ -79,6 +81,8 @@ def render_details(result: ScanResult) -> None:
     if d.status is Status.ALERT_FOUND and result.matched_record is not None:
         r = result.matched_record
         st.subheader("Matched NSQ record (as published by CDSCO)")
+        read_from = "read from the photo" if d.batch_source is BatchSource.OCR else "entered by you"
+        st.text(f"Compare: batch {read_from} = {d.batch_as_read or '-'}   |   listed batch = {r.batch_number}")
         for label, value in (
             ("Serial", r.serial), ("Product", r.product_name), ("Batch", r.batch_number),
             ("Manufacturing date", r.manufacturing_date), ("Expiry date", r.expiry_date),
