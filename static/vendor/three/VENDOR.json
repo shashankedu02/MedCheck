@@ -1,0 +1,20 @@
+{
+  "package": "three",
+  "version": "0.170.0",
+  "license": "MIT (see LICENSE in this folder)",
+  "source_tarball": "https://registry.npmjs.org/three/-/three-0.170.0.tgz",
+  "published": "2024-10-31T07:08:27.705Z",
+  "npm_integrity": "sha512-FQK+LEpYc0fBD+J8g6oSEyyNzjp+Q7Ks1C568WWaoMRLW+TkNNWmenWeGgJjV105Gd+p/2ql1ZcjYvNiPZBhuQ==",
+  "integrity_verified_on_download": "2026-11-15 (SHA-512 of the downloaded tarball equals npm_integrity)",
+  "files": {
+    "three.module.min.js": {
+      "from": "package/build/three.module.min.js",
+      "sha256": "08fd7545d13d2c7fb65ab691530a802dafefd638596501854f267d0fb13c39e7",
+      "notes": "standalone ES module, no imports, no network access"
+    },
+    "LICENSE": {
+      "from": "package/LICENSE",
+      "sha256": "4c40a1ef62450b857c3b2aaf294936304cd552d965fbcd9d32d4c5bcf4ba4454"
+    }
+  }
+}
