@@ -1,5 +1,7 @@
 # UI/UX Guidelines
 
+Status: implemented in `app.py` and covered by `tests/test_app.py`. Below is the design intent it follows.
+
 ## Main screen
 Explain in one short paragraph that the tool checks an image against the August 2026 CDSCO NSQ Drugs list only. Offer two input methods: upload and camera capture. State supported image formats and size limits after they are implemented.
 

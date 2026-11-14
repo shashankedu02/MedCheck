@@ -1,48 +1,35 @@
-# Beginner and Agent Workflows
+# Workflows (PowerShell, from `D:\MedCheck`)
 
-## Workflow A — first inspection (no code edits)
+## One-time setup
 ```powershell
-cd D:\MedCheck
-git status --short
-Get-ChildItem -Force
-Get-ChildItem .\data
-python --version
-git --version
-tesseract --version
-```
-Confirm `data\cdsco_august_2026_nsq.csv` exists. Do not paste the entire dataset into a chat; inspect schema and quality summaries.
-
-## Workflow B — virtual environment
-```powershell
-cd D:\MedCheck
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+tesseract --version        # native engine must be installed separately (v5.x, English data)
 ```
-If PowerShell blocks activation, use the documented local policy/workaround approved by the user; do not change machine-wide execution policy silently.
+If PowerShell blocks `Activate.ps1`, skip activation and call `.\.venv\Scripts\python.exe` directly, as below.
 
-## Workflow C — run tests
-Once tests exist:
+## Run the app
 ```powershell
-python -m pytest -q
+.\.venv\Scripts\python.exe -m streamlit run app.py
 ```
-Report actual pass/fail counts. Never report tests as passed if not executed.
+Opens at http://localhost:8501 (localhost only).
 
-## Workflow D — run app
-Once `app.py` exists:
+## Run tests
 ```powershell
-streamlit run app.py
+.\.venv\Scripts\python.exe -m pytest -q
 ```
 
-## Workflow E — agent request template
-Ask the coding agent to:
-1. inspect current files and Git status;
-2. read root `AGENTS.md` and relevant feature spec;
-3. state a narrow plan and acceptance tests;
-4. wait for approval before scope-changing actions;
-5. implement only the approved step;
-6. run tests and show output;
-7. summarize diff and next decision.
+## Dataset
+```powershell
+.\.venv\Scripts\python.exe scripts\build_dataset.py --check   # verify committed dataset is exactly reproducible
+.\.venv\Scripts\python.exe scripts\build_dataset.py           # rebuild (only if the pinned official source changed policy-wise)
+```
 
-## Approval etiquette
-The agent may proceed with low-risk implementation after the user approves the stated step. It must pause before modifying source data, installing unexpected dependencies, changing safety policy, deploying, pushing or deleting files.
+## Demonstration images and evaluation
+```powershell
+.\.venv\Scripts\python.exe scripts\make_demo_images.py        # writes demo_images\ (synthetic labels)
+.\.venv\Scripts\python.exe scripts\evaluate.py --manifest eval_private\manifest.csv --split heldout
+```
+
+## Resuming development
+Read `BUILD_PROGRESS.md`, run `git status` and the tests, then continue with its "Next action". Update `BUILD_PROGRESS.md` and commit at the end of each milestone.

@@ -8,11 +8,11 @@ Reproduce the issue with the smallest input. Capture exact command, traceback, a
 python --version
 git --version
 tesseract --version
-python -c "import pytesseract; print(pytesseract.get_tesseract_version())"
-python -c "import cv2, pandas, streamlit; print('imports ok')"
+.\.venv\Scripts\python.exe -c "from medcheck.ocr import find_engine; print(find_engine())"
+.\.venv\Scripts\python.exe -c "import cv2, PIL, rapidfuzz, streamlit; print('imports ok')"
 ```
 
-If Tesseract is not found, verify installation and PATH or configure the executable path. Remember `pytesseract` is only a wrapper.
+If Tesseract is not found, verify installation and PATH or configure the executable path. MedCheck calls the `tesseract` executable directly (no pytesseract); set `MEDCHECK_TESSERACT_CMD` to its full path if PATH is not configured.
 
 ## OCR troubleshooting
 - Confirm image opens and correct orientation.

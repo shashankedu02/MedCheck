@@ -14,3 +14,4 @@ eval_images/
 eval_private/
 .env
 .streamlit/secrets.toml
+demo_images/
