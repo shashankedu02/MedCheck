@@ -1,0 +1,46 @@
+{
+  "dataset_id": "cdsco-nsq-aug-2026",
+  "label": "CDSCO NSQ Alerts, reporting period August 2026",
+  "reporting_period": "AUG-2026",
+  "record_count": 220,
+  "columns": [
+    "Serial Number",
+    "Name of Product",
+    "Batch Number",
+    "Manufacturing Date",
+    "Expiry Date",
+    "Manufactured By",
+    "NSQ Result",
+    "Reporting Source",
+    "Reporting by Lab/State",
+    "Reporting Month and Year"
+  ],
+  "source": {
+    "file": "cdsco_august_2026_nsq_official_extraction.csv",
+    "sha256": "1eb25a9f6de052cc0be926c5785ad4a6b918ce8d06e030dc3552869d333edcef",
+    "origin": "https://cdscoonline.gov.in/CDSCO/viewPublicNSQDrug (NSQ Drugs, Aug-2026, source 'All')",
+    "details": "data/cdsco_august_2026_nsq_extraction_log.md"
+  },
+  "canonical": {
+    "file": "cdsco_august_2026_nsq.csv",
+    "sha256": "980efb50e79cca3590cf2de9510609cf282140bb193126a5451d756b1d581036",
+    "encoding": "utf-8 (no BOM), LF row endings, RFC 4180 quoting"
+  },
+  "transformation": {
+    "version": 1,
+    "script": "scripts/build_dataset.py",
+    "steps": [
+      "drop 'Portal Page' column",
+      "replace each embedded line break inside a cell with one ordinary space",
+      "no other change (no trimming, case, punctuation or error repair)"
+    ]
+  },
+  "known_source_anomalies": [
+    "serial 72 product name contains 'Potass um' and '?' (preserved)",
+    "serial 152 product name contains '?' and an unclosed '(' (preserved)",
+    "serial 136 expiry (Jun-2025) precedes manufacture (Jul-2025) (preserved)",
+    "serials 150 and 153 batch numbers end with ',' (preserved)",
+    "serial 121 batch '0l25038' has a lowercase L (preserved)",
+    "serials 38 and 157 batches differ only by digit 0 vs letter O and a space (preserved)"
+  ]
+}
