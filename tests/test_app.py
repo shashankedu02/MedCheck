@@ -223,3 +223,24 @@ def test_clean_ocr_value_is_prefilled_for_review():
 def test_no_manual_form_for_rejected_photo_or_system_error():
     rejected = ScanResult(rejection=ImageRejected("too_small", "The image is too small."))
     assert not any("batch number yourself" in s.value for s in run_with(rejected).subheader)
+
+
+# ---- stale server (code updated while the app was running) ----
+def test_stale_modules_show_a_restart_instruction_not_a_traceback(monkeypatch):
+    import medcheck.models as models
+
+    monkeypatch.delattr(models, "BatchSource")  # what a long-running server holding an OLD models module looks like
+    at = AppTest.from_file(APP, default_timeout=30).run()
+    assert not at.exception
+    assert any("updated while this page was running" in e.value and "Ctrl+C" in e.value for e in at.error)
+
+
+def test_editing_the_batch_clears_the_confirmation_tick():
+    at = run_with(result_for(MatchOutcome.NO_MATCH, batch_state=FieldState.NOT_FOUND))
+    at.text_input(key="manual_text").set_value("ZX99001Q").run()
+    at.checkbox(key="manual_confirmed").check().run()
+    assert at.checkbox(key="manual_confirmed").value is True
+    at.text_input(key="manual_text").set_value("ZX99002Q").run()  # a different number needs its own confirmation
+    assert at.checkbox(key="manual_confirmed").value is False
+    _button(at, "Check this batch number").click().run()
+    assert at.session_state["result"].decision.reason_code == "manual_entry_unconfirmed"

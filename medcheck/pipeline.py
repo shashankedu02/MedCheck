@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field, replace
 from datetime import date
 from typing import Callable
@@ -86,6 +87,16 @@ _DATASET_FAILURES = {
 _UNSET = object()
 
 
+class _Deferred:
+    """Future-like wrapper that runs the job when .result() is called (sequential mode)."""
+
+    def __init__(self, job):
+        self._job = job
+
+    def result(self):
+        return self._job()
+
+
 class MedCheckPipeline:
     def __init__(self, dataset: Dataset | None, dataset_failure: SystemFailure | None = None,
                  today: Callable[[], date] = date.today, *, rapid_engine=_UNSET, tesseract_engine=_UNSET):
@@ -112,6 +123,14 @@ class MedCheckPipeline:
             failure = next((v for k, v in _DATASET_FAILURES.items() if isinstance(exc, k)), SystemFailure.DATASET_INTEGRITY)
             log.error("dataset failure: %s", exc.code)
             return cls(None, failure, **opts)
+
+    def warm_up(self) -> None:
+        """Best effort: initialise OCR engines now (never raises; a real check reports any engine problem)."""
+        try:
+            if self._rapid is not None and hasattr(self._rapid, "warm_up"):
+                self._rapid.warm_up()
+        except Exception:  # noqa: BLE001
+            log.error("warm-up failed")
 
     # ------------------------------------------------------------------
     def check(self, image_bytes: bytes) -> ScanResult:
@@ -143,6 +162,23 @@ class MedCheckPipeline:
         if region is None:
             notes.append("No separate pack region was detected; the full photo was used.")
 
+        # Tesseract (a separate process) runs concurrently with RapidOCR instead of after it: same passes, same
+        # results, less waiting. Variants are prepared here, in the calling thread.
+        tess = self._tesseract()
+        tess_variants: list = []
+        tess_limit = 0
+        tess_pool: ThreadPoolExecutor | None = None
+        tess_future = None
+        if tess is not None:
+            tess_variants = make_variants(crop or img)
+            # RapidOCR is primary: Tesseract adds limited extra evidence (all variants only when it is the sole engine)
+            tess_limit = config.TESSERACT_EVIDENCE_VARIANTS if self._rapid is not None else len(tess_variants)
+            if config.TESSERACT_CONCURRENT:
+                tess_pool = ThreadPoolExecutor(max_workers=1)
+                tess_future = tess_pool.submit(run_ocr, tess_variants[:tess_limit], tess)
+            else:  # sequential: the same job, run after RapidOCR
+                tess_future = _Deferred(lambda: run_ocr(tess_variants[:tess_limit], tess))
+
         if self._rapid is not None:
             try:
                 views = [("full_rot0", img)]
@@ -164,14 +200,13 @@ class MedCheckPipeline:
                 versions = []
                 views_by_name = {}
 
-        tess = self._tesseract()
         timed_out = False
-        if tess is not None and time.monotonic() < deadline:
+        if tess_future is not None:
             try:
-                variants = make_variants(crop or img)
-                if passes:  # RapidOCR is primary: Tesseract adds limited extra evidence
-                    variants = variants[: config.TESSERACT_EVIDENCE_VARIANTS]
-                tp, _ = run_ocr(variants, tess)
+                tp, _ = tess_future.result()
+                if self._rapid is None and tess_limit < len(tess_variants):  # RapidOCR failed: Tesseract is now the only engine
+                    extra, _ = run_ocr(tess_variants[tess_limit:], tess)
+                    tp = [*tp, *extra]
                 passes.extend(tp)
                 versions.append(tess.version)
             except OCRTimeout:
@@ -179,6 +214,9 @@ class MedCheckPipeline:
                 notes.append("Tesseract timed out; its passes were not used.")
             except OCREngineUnavailable:
                 notes.append("Tesseract is unavailable; it contributed no evidence.")
+            finally:
+                if tess_pool is not None:
+                    tess_pool.shutdown(wait=True)
         elif tess is None:
             notes.append("Tesseract is not installed; it contributed no evidence.")
         if not passes:

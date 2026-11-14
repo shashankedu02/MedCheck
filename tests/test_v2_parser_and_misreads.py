@@ -190,3 +190,59 @@ def test_a_line_touching_the_image_edge_is_not_used_as_a_batch():
     assert extract([ok, ok]).batch.state is FieldState.READ  # same text away from the edge is fine
     one_cut = extract([cut, ok])
     assert one_cut.batch.state is FieldState.AMBIGUOUS  # a single uncut pass is not enough
+
+
+# ---- manual-testing review: the browser-test readings, dates, and look-alike conflicts ----
+def test_browser_test_readings_dropped_f_label_no_longer_swallows_the_date():
+    # the engine read "MFG" as "MG": the date used to stay inside the batch and the manufacturing date was lost
+    pf = extract_from_lines(["B.NO.HLA50019MG.JUL.2025 EXP.JUN.2028"])
+    assert pf.batch_candidates == ("HLA50019",)  # the raw OCR value is kept as read: S is NOT turned into 5 or 5 into S
+    assert pf.mfg_candidates == ("JUL.2025",) and pf.expiry_candidates == ("JUN.2028",)
+
+
+@pytest.mark.parametrize("line", ["500 MG JAN 2025", "Paracetamol 500 MG. JUL.2025", "Each tablet contains 500 MG 25", "MG 2025"])
+def test_a_strength_is_never_a_manufacturing_date(line):
+    assert extract_from_lines([line]).mfg_candidates == ()
+
+
+@pytest.mark.parametrize("lines,mfg,exp", [
+    (["MFD.JUN25 EXP.MAY27"], "JUN25", "MAY27"),
+    (["MFD.JUL.25 EXP.JUN.27"], "JUL.25", "JUN.27"),
+    (["MFG. JUN 25   EXP. MAY 27"], "JUN 25", "MAY 27"),
+    (["MfgDt:04/2026Exp.Dt.:03/2029"], "04/2026", "03/2029"),
+    (["Mfg. Dt.: JUN.2026", "Exp. Dt.: MAY.2028"], "JUN.2026", "MAY.2028"),
+    (["MFG", "JUL.2025", "EXP.JUN.2028"], "JUL.2025", "JUN.2028"),
+    (["MG.JUL.2025", "EXP.JUN.2028"], "JUL.2025", "JUN.2028"),
+])
+def test_date_layouts(lines, mfg, exp):
+    pf = extract_from_lines(lines)
+    assert pf.mfg_candidates == (mfg,) and pf.expiry_candidates == (exp,)
+
+
+def test_dates_do_not_invent_values_from_unrelated_numbers():
+    pf = extract_from_lines(["B.No.: ABC123 MRP 25", "Paracetamol 500 mg 25"])
+    assert pf.mfg_candidates == () and pf.expiry_candidates == ()
+
+
+def test_a_month_year_glued_to_the_batch_is_cut_but_a_batch_that_starts_like_a_month_is_kept():
+    assert extract_from_lines(["B.NO.XYZ123JUL.2025"]).batch_candidates == ("XYZ123",)
+    assert extract_from_lines(["B.No.: DEC1234"]).batch_candidates == ("DEC1234",)
+    assert extract_from_lines(["B.No.: JAN2501"]).batch_candidates == ("JAN2501",)
+
+
+@pytest.mark.parametrize("a,b,expected", [
+    ("HLAS0019", "HLA50019", "5 or S"),       # the browser-test case: S vs 5
+    ("BKBP02601", "BKBP O2601", "0 or O"),
+    ("INA26083", "1NA26083", "1 or I"),
+])
+def test_conflicts_that_differ_only_by_lookalikes_are_explained_never_resolved(a, b, expected):
+    r = reconcile_batch([_pf("rapidocr:full_rot0", a), _pf("rapidocr:crop_rot0", b)])
+    assert r.state is FieldState.AMBIGUOUS and r.key is None and r.raw is None  # nothing is chosen
+    assert "look-alike" in r.reason and expected in r.reason
+    assert {a, b} == set(r.readings)  # both raw readings stay available for the user to compare with the pack
+
+
+@pytest.mark.parametrize("a,b", [("HLAS50019", "HLAS0019"), ("ABC123", "ABC124"), ("TG261185", "TG26118")])
+def test_other_conflicts_use_the_generic_reason(a, b):
+    r = reconcile_batch([_pf("a", a), _pf("b", b)])
+    assert r.state is FieldState.AMBIGUOUS and "look-alike" not in r.reason

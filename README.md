@@ -64,7 +64,7 @@ The immutable official CDSCO extraction (`data/cdsco_august_2026_nsq_official_ex
 ## Known limitations
 - **OCR accuracy on real photographs has not been evaluated.** No performance claims are made; the 60-image protocol (`docs/EVALUATION.md`) is not yet run. Diagnostic runs on development photos exist (`BUILD_PROGRESS.md`); they are not accuracy figures.
 - OCR can read a batch confidently but wrongly or incompletely; always compare the "Batch checked" line with the number printed on the pack.
-- Extraction needs a recognisable label (`B.No.`, `Batch No.`, `Lot`); strict agreement across OCR passes means blurry, glary, cut-off or dark-ink-on-gold photos often end as "Unable to verify". On the development PC a check took 7-23 seconds (mean 14 s) on real photos.
+- Extraction needs a recognisable label (`B.No.`, `Batch No.`, `Lot`); strict agreement across OCR passes means blurry, glary, cut-off or dark-ink-on-gold photos often end as "Unable to verify". On the development PC a check typically takes 3-10 seconds when a batch label is found and up to about 20 seconds when nothing is found (it then tries the photo rotated); times vary with other programs using the computer. After updating the code, stop and restart the app so the running copy is not out of date.
 - Batches shorter than 3 characters (serials 24 and 26) are never read; they always end as "Unable to verify".
 - English only; no deskew or perspective correction; one image per check; no barcode/QR support.
 - Covers only the August 2026 list, not other months, other regulators or the full regulatory record.

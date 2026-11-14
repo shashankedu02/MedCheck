@@ -9,8 +9,16 @@ import hashlib
 
 import streamlit as st
 
-from medcheck.models import BatchSource, FieldState, Status
-from medcheck.pipeline import ManualEntryError, MedCheckPipeline, ScanResult
+try:
+    from medcheck.models import BatchSource, FieldState, Status
+    from medcheck.pipeline import ManualEntryError, MedCheckPipeline, ScanResult
+except ImportError:  # the code changed on disk while this server kept the old modules in memory
+    st.error(
+        "MedCheck's code was updated while this page was running, so the running copy is out of date. "
+        "Stop the app (Ctrl+C in the terminal where it is running), start it again with "
+        "`streamlit run app.py`, then reload this page."
+    )
+    st.stop()
 
 st.set_page_config(page_title="MedCheck", page_icon="💊", layout="centered")
 
@@ -18,7 +26,9 @@ st.set_page_config(page_title="MedCheck", page_icon="💊", layout="centered")
 @st.cache_resource(show_spinner=False)
 def get_pipeline() -> MedCheckPipeline:
     """Dataset + index only (public reference data); never holds user images or text."""
-    return MedCheckPipeline.load()
+    pipeline = MedCheckPipeline.load()
+    pipeline.warm_up()  # load the OCR models once at start, not inside the first check
+    return pipeline
 
 
 FIELD_WORDS = {FieldState.READ: "read consistently", FieldState.AMBIGUOUS: "uncertain", FieldState.NOT_FOUND: "not found"}
@@ -119,7 +129,9 @@ def render_manual_entry(pipeline: MedCheckPipeline, result: ScanResult) -> None:
     )
     if "manual_text" not in st.session_state:
         st.session_state["manual_text"] = ex.batch.raw if ex.batch.state is FieldState.READ and ex.batch.raw else ""
-    st.text_input("Batch number as printed on the pack", key="manual_text", max_chars=30)
+    # A confirmation belongs to the number it was given for: editing the number clears the tick.
+    st.text_input("Batch number as printed on the pack", key="manual_text", max_chars=30,
+                  on_change=lambda: st.session_state.__setitem__("manual_confirmed", False))
     st.checkbox("I compared this number with the pack", key="manual_confirmed")
     if st.button("Check this batch number"):
         try:
