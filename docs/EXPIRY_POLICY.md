@@ -1,12 +1,16 @@
-# Expiry Policy — Unresolved
+# Expiry Policy (D-007 OPEN)
 
-The CSV uses month-year values such as `Jun-2026`. No authoritative day-level interpretation has been established in the supplied evidence. A prior research draft suggested treating the whole printed month as valid, but explicitly lacked authoritative confirmation. That proposal is not approved.
+The dataset and most packaging print month-year expiry (`Jun-2026`, `06/2026`). No authoritative day-level interpretation has been established, so **MedCheck never emits `Expired`** (`config.EXPIRY_POLICY_APPROVED = False`).
 
-Until approval:
-- Do not classify month-year values as definitively expired/not expired.
-- Display the parsed month-year as source evidence and mark expiry interpretation unresolved.
-- Keep expiry separate from NSQ matching.
-- A confirmed NSQ match remains `Alert found`, with expiry caveat.
-- For no-match cases where expiry is unreadable or policy-dependent, abstain or display the owner-approved field-level caveat; do not invent a cutoff.
+## Implemented behaviour (`medcheck/dates.py`, `medcheck/decision.py`)
+- Parsing supports only month-year formats (MM/YYYY, MM-YY, MMM YYYY, YYYY-MM, ...). Day-level dates, month > 12 and anything else are reported as *unparseable*, never guessed.
+- Policy off (current): a parsed expiry yields `UNDETERMINED` with the note "How month-only expiry dates are interpreted has not been approved".
+- Expiry never affects `Alert found`; it only adds a caveat.
+- With no NSQ match, expiry cannot change the result while the policy is off: the result is `No alert found` plus the caveat.
+- An expiry earlier than the manufacturing date is surfaced as a possible misread.
 
-Approval must document authoritative guidance, timezone, date boundary, supported formats, ambiguity handling, and tests.
+## Implemented but disabled option
+If the owner approves, setting the flag enables: valid through the last day of the printed month; strictly after that day -> `EXPIRED`. Boundary tests exist (`tests/test_normalization_dates.py`). Alternatives (first of month, never expire month-only dates) are not implemented.
+
+## To approve
+Provide authoritative guidance (e.g. Drugs and Cosmetics Rules labelling text), timezone/date source, and confirm the rule. Then flip the flag, update this file and `docs/DECISIONS.md`.
