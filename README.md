@@ -5,7 +5,7 @@ Upload or capture a photo of a medicine strip or box. MedCheck reads the batch n
 
 | Outcome | Meaning |
 |---|---|
-| **Alert found** | The batch read from the photo matches one NSQ entry **and** the product details corroborate it. The matched record is shown. |
+| **Alert found** | The batch read from the photo matches one NSQ entry **and** the product details corroborate it. The matched record is shown, with a "Check before acting" prompt: compare the printed batch character by character, and the product, strength and manufacturer, with the listed record. |
 | **No alert found** | A batch was read, no qualifying entry exists in the August 2026 list, **and you confirmed the batch matches the number printed on the pack**. This does **not** mean the medicine is safe, genuine or free of defects; confirming only means you checked the printed number. |
 | **Expired** | Reserved. **Never shown yet**: how month-only expiry dates should be interpreted is an open owner decision (see `docs/EXPIRY_POLICY.md`). |
 | **Unable to verify** | The batch could not be read consistently, or the evidence is ambiguous, conflicting or too weak. This is the deliberate safe default. |
@@ -36,21 +36,23 @@ The latest recorded results are in `BUILD_PROGRESS.md`.
 
 ## Demonstration (reproducible)
 ```powershell
-.\.venv\Scripts\python.exe scripts\make_demo_images.py
+.\.venv\Scripts\python.exe scripts\make_demo_images.py      # writes demo_images\ + fixtures_manifest.csv
+.\.venv\Scripts\python.exe scripts\run_fixture_check.py     # optional: records a fixture run (7 of 7 expected)
 .\.venv\Scripts\python.exe -m streamlit run app.py
 ```
 Upload the images from `demo_images\` one at a time and press **Check this photo**:
 
 | Image | Expected result | Why |
 |---|---|---|
-| `1_alert_found.png` | Alert found (serial 4) | listed batch plus matching product |
-| `2_alert_found_trailing_comma.png` | Alert found (serial 150) | published batch ends with a comma; punctuation is ignored |
-| `3_no_alert_after_confirmation.png` | Unable to verify, then No alert found after you tick the confirmation | batch not in the list, but a clean negative needs you to compare the batch with the pack first |
-| `4_unable_batch_alone.png` | Unable to verify | listed batch, wrong product: a batch alone never alerts |
-| `5_unable_collision.png` | Unable to verify | serials 38 and 157 differ only by 0 vs letter O |
-| `6_unable_no_batch.png` | Unable to verify | no batch number present |
+| `FIXTURE_1_alert_found.png` | Alert found (serial 4), with "Check before acting" | listed batch plus matching product |
+| `FIXTURE_2_alert_found_trailing_comma.png` | Alert found (serial 150) | published batch ends with a comma; punctuation is ignored |
+| `FIXTURE_3_no_alert_after_confirmation.png` | Unable to verify, then No alert found after you tick the confirmation | batch not in the list, but a clean negative needs you to compare the batch with the pack first |
+| `FIXTURE_4_unable_batch_alone.png` | Unable to verify | listed batch, wrong product: a batch alone never alerts |
+| `FIXTURE_5_unable_collision.png` | Unable to verify | serials 38 and 157 differ only by 0 vs letter O |
+| `FIXTURE_6_unable_no_batch.png` | Unable to verify | no batch number present |
+| `FIXTURE_7_alert_listed_neighbour.png` | Alert found (serial 113) | listed serial 118 is one character away; the alert warns that one misread character could produce the match |
 
-These demo images are **synthetic rendered text**, built from public dataset values. They show how the software behaves; they are not evidence of accuracy on real photographs. `tests/test_demo.py` verifies every row above.
+These are **synthetic test fixtures** (rendered text built from public list values), not photographs of affected medicines. Every image carries a red in-frame banner "TEST FIXTURE - SYNTHETIC - NOT A REAL MEDICINE"; keep it visible if you print and photograph one. They show how the software behaves; their pass rate is not evidence of accuracy on real photographs and is recorded separately (`evaluation/results/fixtures/`). `tests/test_demo.py` verifies every row above.
 
 ## Reviewing, correcting or typing the batch
 Under every result MedCheck shows the batch it read and lets you correct it or type it when OCR found none. A typed or corrected batch goes through the same checks, is labelled as yours, never counts as OCR evidence and never confirms the product; a number that matches nothing (whether OCR read it, you corrected it or you typed it) gives `No alert found` only after you tick that you compared it with the one printed on the pack. Until you do, the result is `Unable to verify` and the batch is shown back to you, because OCR can read look-alike characters (S for 5, O for 0, I for 1) wrongly and consistently. An alert is never delayed for this.
@@ -64,6 +66,8 @@ The immutable official CDSCO extraction (`data/cdsco_august_2026_nsq_official_ex
 ## Known limitations
 - **OCR accuracy on real photographs has not been evaluated.** No performance claims are made; the 60-image protocol (`docs/EVALUATION.md`) is not yet run. Diagnostic runs on 20 development photos and a one-time run on 7 reserved photos exist (`BUILD_PROGRESS.md`, `docs/HELDOUT_EVALUATION.md`); neither is an accuracy figure (no listed pack was among them, and the references are visual readings).
 - OCR can read a batch confidently but wrongly or incompletely; always compare the "Batch checked" line with the number printed on the pack.
+- A one-character misread of an unlisted neighbouring batch of a listed product could produce a false `Alert found` (listed batches often come in sequences); the product check does not compare the manufacturer and uses all text in the photo. Every alert therefore asks you to compare batch, product, strength and manufacturer with the listed record.
+- `Alert found` has only been exercised on synthetic test fixtures and programmatic tests, never on a photograph of a real listed pack (none can be obtained).
 - Extraction needs a recognisable label (`B.No.`, `Batch No.`, `Lot`); strict agreement across OCR passes means blurry, glary, cut-off or dark-ink-on-gold photos often end as "Unable to verify". On the development PC a check typically takes 3-10 seconds when a batch label is found and up to about 20 seconds when nothing is found (it then tries the photo rotated); times vary with other programs using the computer. After updating the code, stop and restart the app so the running copy is not out of date.
 - Batches shorter than 3 characters (serials 24 and 26) are never read; they always end as "Unable to verify".
 - English only; no deskew or perspective correction; one image per check; no barcode/QR support.

@@ -19,7 +19,10 @@ MedCheck: photo-based medicine batch verification using local OCR and conservati
 | Every decision and its state | `docs/DECISIONS.md` |
 | Security and privacy | `docs/SECURITY_GUIDELINES.md` |
 | Tests | `docs/TESTING_GUIDELINES.md` |
-| 60-image evaluation protocol | `docs/EVALUATION.md` |
+| Evaluation protocol and evidence categories | `docs/EVALUATION.md` |
+| Evaluation strategy, risks, test matrix | `docs/EVALUATION_STRATEGY.md` |
+| Reserved-photo run (spent) | `docs/HELDOUT_EVALUATION.md` |
+| Verified facts for the poster/demo | `docs/POSTER_FACTS.md` |
 | Independent review process (Antigravity) | `docs/REVIEW_PROCESS.md` |
 | OCR engines: install, licences, offline, model hashes | `docs/OCR_ENGINES.md` |
 | OCR failure investigation and V2 design evidence | `docs/OCR_INVESTIGATION.md` |

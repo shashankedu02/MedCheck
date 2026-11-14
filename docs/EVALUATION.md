@@ -2,8 +2,18 @@
 
 **No accuracy, sensitivity, specificity or time-saving claim may be made about MedCheck until this protocol has been run and the raw per-image results are kept.** The automated test suite proves behaviour on synthetic labels and logic cases; it is not an evaluation of real-world OCR.
 
-## Planned study
-Target: 60 photographs of real medicine packs, 30 whose batch is in the August 2026 NSQ list and 30 that are not. With n = 30 per group, confidence intervals are wide (for example 27/30 correct has a 95% Wilson interval of roughly 74-97%); report them, do not round them away.
+## Evidence categories (proposed revision of D-014; owner approval pending)
+The original target (60 photographs, 30 of them NSQ-listed) cannot be met: listed batches are withdrawn and must not be obtained. Evidence is therefore kept in separate categories, each reported on its own and **never merged into one percentage** (rationale and test matrix: `docs/EVALUATION_STRATEGY.md`):
+
+| Category | Can show | Cannot show | Rate allowed |
+|---|---|---|---|
+| C1 Real photos of ordinary packs, labelled from the physical pack by two people before the run, split dev/test by pack | batch-string reading, false alerts on non-listed packs, abstention mix, date reading, time | detection of listed batches | yes, test split only, with Wilson intervals; 0 false alerts in n gives an upper bound of about 3/n |
+| C2 Synthetic test fixtures (`scripts/make_demo_images.py`, `scripts/run_fixture_check.py`) | the whole software path including `Alert found`, on clean known inputs | real-world accuracy | fixture pass rate only |
+| C3 Programmatic tests (pytest) | rule compliance for all 220 listed rows | anything about OCR | pass/fail only |
+| C4 Verified real positives (photos of quarantined NSQ stock, if ever available) | real alert-path behaviour | rates | case counts only |
+| C5 Human-confirmation study (planted misreads) | whether users catch misreads before confirming (D-026 depends on it) | OCR accuracy | catch rate, separately |
+
+With n = 30, confidence intervals are wide (for example 27/30 has a 95% Wilson interval of roughly 74-97%); report them, do not round them away.
 
 ## Collection (owner decisions still needed)
 - Source of packs/photos, permission to photograph, and removal of personal information.
@@ -16,10 +26,12 @@ Target: 60 photographs of real medicine packs, 30 whose batch is in the August 2
 ```powershell
 .\.venv\Scripts\python.exe scripts\evaluate.py --manifest eval_private\manifest.csv --split heldout --out eval_private\results.csv
 ```
-The manifest format is documented in the script header. The script refuses missing or duplicate images and prints, with confidence intervals: alert sensitivity (abstentions count as misses), false negatives (wrong clean negatives) separately from abstentions, false positives, alert precision, specificity, abstention rate, decisive coverage, system errors, batch exact accuracy, median and p95 latency.
+The manifest format is documented in the script header. The script refuses missing or duplicate images and prints, with confidence intervals: alert sensitivity (abstentions count as misses), false negatives (wrong clean negatives) separately from abstentions, false positives, alert precision, abstention rate, decisive coverage, system errors, batch exact accuracy (compared on the comparison key: formatting ignored, look-alikes not folded), median and p95 latency.
+
+Because an automated run never confirms a batch (D-026), clean negatives arrive as `Unable to verify` awaiting confirmation. `medcheck/evaluation.py` counts them in their own category and never as correct: on a non-listed pack they are split into "correct string offered" (ready for the user's confirmation) and "wrong string offered" (the user must catch it); on a listed pack they are reported as **potential misses**, the most dangerous automated outcome, never hidden among abstentions. "Clean No alert found on non-alert images" can only be non-zero when user confirmations are recorded (category C5).
 
 ## Reporting rules
-Keep every abstained or failed image in the denominators. Report false negatives and false positives separately and discuss each. Record hardware, OS, Tesseract version (`tesseract --version`), dataset SHA-256 (from `data/dataset_manifest.json`) and git commit. If the protocol is compromised (labels uncertain, tuning on heldout, leakage), say so and do not claim validated performance.
+Keep every abstained or failed image in the denominators. Report false negatives and false positives separately and discuss each. Record hardware, OS, OCR engine versions (RapidOCR package and Tesseract; both are in each run's `run_info.json`), dataset SHA-256 (from `data/dataset_manifest.json`) and git commit. If the protocol is compromised (labels uncertain, tuning on heldout, leakage), say so and do not claim validated performance.
 
 ## Automated real-photograph run (records only, no accuracy claim)
 Photographs placed in `evaluation/incoming_photos/` (git-ignored, read-only to the tool) are processed through the unchanged `MedCheckPipeline.check()` with one command:
@@ -57,6 +69,9 @@ What these show: the review fixes behave as intended in a real browser session, 
 
 ## Reserved-photo evaluation
 The seven reserved photographs were processed once on 2026-11-15 with the unchanged pipeline at commit `c83ecf3`; see `docs/HELDOUT_EVALUATION.md` (protocol, hashes, per-photo results, limits). They are now **used** and must not guide tuning.
+
+## Synthetic test fixtures (category C2; never real-world evidence)
+`scripts/make_demo_images.py` renders 7 fixtures from public list values; each carries a red in-frame banner "TEST FIXTURE - SYNTHETIC - NOT A REAL MEDICINE" and is listed in `fixtures_manifest.csv`. `scripts/run_fixture_check.py` runs them through the unchanged pipeline and writes `evaluation/results/fixtures/fixture_run_<timestamp>/` (results, report headed "SYNTHETIC FIXTURES - NOT REAL-WORLD EVIDENCE"), never `evaluation/results/runs/`. `tests/test_demo.py` requires every fixture to give its documented result and the banner to be legible to OCR. A fixture pass rate says the software path works on clean rendered text; it is not an accuracy figure and is never combined with real-photo numbers. Fixtures may be printed and photographed for a live demonstration only with the banner visible.
 
 ## What is already verified (not an evaluation)
 Unit and integration tests, including synthetic-label runs through real Tesseract and the Streamlit widgets, are described in `docs/TESTING_GUIDELINES.md`.

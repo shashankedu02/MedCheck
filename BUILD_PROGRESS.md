@@ -4,13 +4,15 @@ Single source of truth for resuming development. Update at the end of every mile
 Run tests with: `.venv\Scripts\python.exe -m pytest -q`
 
 ## Current state
+**M13 (completion sprint for Bengaluru Tech Summit, 2026-11-15)** is done: alert-side check (D-027), confirmation-aware metrics (D-028), labelled synthetic fixtures with a separate fixture check (7 of 7), documentation reconciled, poster facts in `docs/POSTER_FACTS.md`. No matching rule, threshold, dataset or expiry setting changed.
+
 **M12 (reserved-photo evaluation)** is done: see `docs/HELDOUT_EVALUATION.md`. The 7 reserved photographs are now spent. No code or threshold changed. D-014 (60-image protocol) is still open.
 
 **M11 (D-026 confirmation policy)** is done: no clean negative (`No alert found` / `Expired`) is shown for any batch string until the user has compared it with the pack and confirmed; `Alert found` is never delayed. Triggered by a loosely cropped T003 read as `HLA50019` by both engines (true `HLAS0019`).
 
 **M10 (V2 manual-testing review)** is done: see `docs/V2_REVIEW.md` and D-025. No safety rule changed; held-out photographs still untouched.
 
-**V2 (M9) is implemented**: RapidOCR primary engine with Tesseract as extra evidence/fallback, glue-aware parser, rotation/crop cascade, manual batch entry (D-022..D-024). Real-photograph accuracy is still **not** evaluated (diagnostic runs on 20 development photos only; 7 photos are reserved and untouched).
+**V2 (M9) is implemented**: RapidOCR primary engine with Tesseract as extra evidence/fallback, glue-aware parser, rotation/crop cascade, manual batch entry (D-022..D-024). Real-photograph accuracy is still **not** evaluated (diagnostic runs on 20 development photos; the 7 reserved photos were used once in M12 and are now spent).
 
 All milestones M0-M6 are complete and committed. The application starts, accepts uploads, runs local OCR, extracts fields, matches against the dataset, and handles all four outcomes plus system errors. **Real-photograph accuracy has not been evaluated** (D-014 open), and `Expired` is intentionally disabled (D-007 open). See "What remains".
 
@@ -73,8 +75,16 @@ All milestones M0-M6 are complete and committed. The application starts, accepts
 
 **M12 (reserved-photo evaluation, one-time)** - commit verified `c83ecf3` with a clean tree; 7 photos hashed (unchanged vs. before, after and the original baseline run); unchanged pipeline run from outside the repo (`scripts/run_heldout_evaluation.py` is byte-identical); references read by eye after the run and BEFORE its results were viewed (`evaluation/reference_batches_heldout.csv`); nothing tuned. Results: 7 x `Unable to verify` (2 awaiting confirmation, 5 batch abstentions: 3 conflicts, 2 single-pass); against 4 certain references 1 exact, 0 incorrect, 3 abstained; T009 shows a likely wrong truncated reading agreed by two passes (`UBO20` for `UB02051`) that D-026 withheld; dates: expiry 5/7 and manufacturing 3/7 read, none wrong; time mean 7.8 s (4.8-11.3). Not established: any accuracy, any alert detection (no listed pack), independence for T024 (same pack as T003) and T027 (same maker as T026). Owner's four browser tests recorded in `docs/EVALUATION.md` as user-performed.
 
+**M13 (completion sprint)** - assessment in `docs/EVALUATION_STRATEGY.md` (dataset profiled read-only: 22 listed pairs within 2 edits, mostly one maker's sequences; 45 rows corroborated by one ingredient word; 138 names without strength; 842 one-digit misreads of the 27 short keys end as no match). Changes:
+- **D-027 alert-side check** (`decision.alert_action_check`, `Decision.action_check`, `matching.listed_neighbours`, `app.py`): every alert says to compare the printed batch character by character, and product, strength and manufacturer, with the listed record; the batch read is shown next to the listed batch; listed neighbours are named. Alerts not delayed; outcomes unchanged (the 220-row test is unchanged and passes).
+- **D-028 metrics** (`medcheck/evaluation.py`, `scripts/evaluate.py`): results awaiting confirmation are their own category; on listed packs they are potential misses; batch strings compared on the comparison key.
+- **Fixtures** (`scripts/make_demo_images.py`, new `scripts/run_fixture_check.py`): 7 synthetic fixtures with an in-frame red "TEST FIXTURE - SYNTHETIC - NOT A REAL MEDICINE" banner and a manifest; new neighbour fixture (serial 113 / 118); fixture runs go to `evaluation/results/fixtures/`, never with real-photo runs. Fixture check: 7 of 7 documented results through the real OCR (synthetic; not accuracy).
+- Docs reconciled: stale held-out statements, MATCHING distance (2 for 6+ characters, as coded), PROJECT_SPEC/EVALUATION evidence categories (D-014 still OPEN), pandas note, engine-unavailable message, README demo table.
+- Tests: `tests/test_alert_check.py` (new), `tests/test_evaluation.py`, `tests/test_demo.py` extended.
+
 ## Test results (last run)
-- **After M12 (run after the reserved-photo evaluation), main venv:** `pytest -q` -> **343 passed** (77 s).
+- **After M13, main venv:** `pytest -q` -> **359 passed** (124 s). Fixture check `scripts/run_fixture_check.py`: 7 of 7 (synthetic). Live app: `/_stcore/health` = ok, listening on 127.0.0.1 only, page 200.
+- (Older) **After M12 (run after the reserved-photo evaluation), main venv:** `pytest -q` -> **343 passed** (77 s).
 - (Older) After M11: 343 passed (70 s).
 - (Older) After M10: 322 passed.
 - **After M10, main venv:** `pytest -q` -> **322 passed** (217 s on a loaded machine).
@@ -91,8 +101,9 @@ None.
 ## What remains (needs the owner or real data)
 1. **Confirm the reference batches and T008 on the physical packs** (see M9 open items), then add `ground_truth.csv` labels (`scripts/set_ground_truth.py`) and rescore.
 2. **D-007 expiry policy**: unchanged (disabled). Dates are being read (7/7 on the development set) but not used.
-3. **Held-out run**: after the design is frozen, run `scripts/run_evaluation.py --include-heldout` once on T009, T012, T015, T018, T021, T024, T027 and report as is.
-4. **D-014 60-image evaluation** per `docs/EVALUATION.md` before any accuracy claim.
+3. **Held-out run**: done once in M12; those photos are spent. Any future held-out claim needs a fresh, labelled set.
+4. **D-014** (OPEN): approve or amend the evidence-category design in `docs/EVALUATION.md`, then collect fresh ordinary packs labelled from the physical pack before any accuracy claim.
+4a. Post-demonstration (need evidence): conflicting-manufacturer rule, product evidence restricted to the pack region, human-confirmation study, date agreement and confirmation before D-007.
 5. **Antigravity review** per `docs/REVIEW_PROCESS.md` (suggest M3, M5 and M9).
 6. Possible improvements (need evidence from labelled photos): deskew/perspective, speed (the cascade costs about 14 s per photo), reading batches hidden by embossing, a dark-ink-on-gold strategy.
 
@@ -100,7 +111,9 @@ None.
 Windows 11, Python 3.13.5, Tesseract 5.5.3 (`eng`, `osd` only), Git 2.56.1, streamlit 1.67.0, opencv-python-headless 5.0.0.93, numpy 2.5.4, pillow 13.0.0, RapidFuzz 3.14.6, pytest 9.2.0.
 
 ## Next action
-Owner: confirm the reference batches and T008 on the packs; then decide whether to run the held-out photographs.
+Owner (16 Nov): poster from `docs/POSTER_FACTS.md`; rehearse the demo (README "Demonstration"); print fixtures with the banner visible. After the summit: D-014 decision, confirm reference batches on the physical packs, items 4-4a.
+
+(Older) Owner: confirm the reference batches and T008 on the packs; then decide whether to run the held-out photographs.
 
 (Older) Owner: decide D-022 (RapidOCR dependency) and confirm the 7 reference batches against the physical packs. Then implement V2 per `docs/OCR_INVESTIGATION.md` section 9 (parser first).
 

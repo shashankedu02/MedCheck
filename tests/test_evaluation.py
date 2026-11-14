@@ -68,6 +68,36 @@ def test_latency_and_empty_input():
     assert "n/a" in format_report(empty, "h")
 
 
+AWAIT = "ocr_batch_unconfirmed"
+
+
+def test_d026_awaiting_confirmation_is_its_own_category_never_correct():
+    rows = [
+        EvalRow(False, None, S.UNABLE_TO_VERIFY, "status", None, "AB-123", "ab123", 1.0, AWAIT),  # correct string offered
+        EvalRow(False, None, S.UNABLE_TO_VERIFY, "status", None, "HLAS0019", "HLA50019", 1.0, AWAIT),  # wrong string offered
+        EvalRow(False, None, S.UNABLE_TO_VERIFY, "status", None, None, "XY999", 1.0, AWAIT),  # no label
+        EvalRow(True, 4, S.UNABLE_TO_VERIFY, "status", None, "TG261185", "TG26I185X", 1.0, AWAIT),  # listed pack misread
+        EvalRow(False, None, S.UNABLE_TO_VERIFY, "status", None, None, None, 1.0, "batch_not_found"),  # ordinary abstention
+    ]
+    m = compute_metrics(rows)
+    assert m["awaiting_confirmation"]["k"] == 4 and m["awaiting_confirmation"]["n"] == 5
+    assert m["non_alert_ready_for_confirmation"]["k"] == 1 and m["non_alert_ready_for_confirmation"]["n"] == 4
+    assert m["non_alert_wrong_string_offered"] == 1 and m["non_alert_awaiting_unlabelled"] == 1
+    assert m["potential_misses_awaiting_confirmation"] == 1  # surfaced, not hidden as an abstention
+    assert m["alerts_missed_by_abstention"] == 0
+    assert m["abstention_rate"]["k"] == 1  # only the real abstention
+    assert m["specificity_clean_no_alert_on_non_alert"]["k"] == 0  # nothing is counted as a clean negative
+    assert m["batch_confidently_wrong"] == 2  # HLA50019 and the listed-pack misread
+    report = format_report(m, "h")
+    assert "POTENTIAL MISSES" in report and "never counted as correct" in report
+
+
+def test_batch_comparison_ignores_formatting_but_not_look_alikes():
+    m = compute_metrics([row(False, S.NO_ALERT_FOUND, true_batch="TM 5139", read="TM5139"),
+                         row(False, S.NO_ALERT_FOUND, true_batch="HLAS0019", read="HLA50019")])
+    assert m["batch_exact_accuracy_all_labelled"]["k"] == 1 and m["batch_confidently_wrong"] == 1
+
+
 def test_report_has_validity_header():
     assert format_report(compute_metrics([row(False, S.NO_ALERT_FOUND)]), "HEADER LINE").startswith("HEADER LINE")
 

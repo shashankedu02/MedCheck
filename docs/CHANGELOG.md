@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-15 - completion sprint (M13)
+- D-027: every `Alert found` shows "Check before acting" (batch character by character, product, strength, manufacturer) with the batch read beside the listed batch; listed neighbouring batches are named. Alerts are not delayed; no matching rule or threshold changed.
+- D-028: `medcheck/evaluation.py` counts results awaiting confirmation separately; listed packs misread into unlisted strings are reported as potential misses.
+- Synthetic fixtures carry an in-frame "TEST FIXTURE" banner and a manifest; new neighbour fixture; `scripts/run_fixture_check.py` records fixture runs apart from real-photo runs.
+- Documentation reconciled; assessment `docs/EVALUATION_STRATEGY.md`; poster facts `docs/POSTER_FACTS.md`.
+
 ## 2026-11-15 - reserved-photo evaluation and owner browser tests
 - One-time run of the unchanged pipeline (`c83ecf3`) on the 7 reserved photos: `docs/HELDOUT_EVALUATION.md`. 0 wrong batches among 4 certain references, 1 exact, 3 abstained; a likely wrong truncated reading (T009) was withheld by D-026. Records only; no tuning.
 - The owner's four manual browser tests recorded in `docs/EVALUATION.md` (user-performed; not accuracy evidence).

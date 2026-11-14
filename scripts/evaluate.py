@@ -88,7 +88,8 @@ def main(argv: list[str] | None = None) -> int:
         batch_read = res.extraction.batch.raw if res.extraction else None
         exp_serial = int(r["expected_serial"]) if r.get("expected_serial", "").strip() else None
         rows.append(EvalRow(r["expected_alert"].strip().lower() == "yes", exp_serial, status, kind, serial,
-                            (r.get("true_batch") or None), batch_read, res.elapsed_seconds))
+                            (r.get("true_batch") or None), batch_read, res.elapsed_seconds,
+                            reason_code=reason if kind == "status" else ""))
         out_rows.append({"image_path": r["image_path"], "split": r["split"], "expected_alert": r["expected_alert"],
                          "status": status.value if status else kind, "reason": reason, "matched_serial": serial or "",
                          "batch_read": batch_read or "", "seconds": f"{res.elapsed_seconds:.2f}"})
