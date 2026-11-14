@@ -1,0 +1,9 @@
+# Reserved held-out photographs (docs/OCR_INVESTIGATION.md). Never opened, viewed or OCR-processed during development.
+# The evaluation runner skips these unless --include-heldout is passed explicitly.
+9
+12
+15
+18
+21
+24
+27

@@ -69,9 +69,31 @@ def tesseract_cmd_candidates() -> list[str]:
     return candidates
 
 
+# --- OCR engines, V2 (UNCALIBRATED) ---------------------------------------------
+# RapidOCR is the primary engine; Tesseract contributes extra passes on the same views.
+USE_RAPIDOCR = True
+RAPIDOCR_RETRY_ROTATIONS_DEG = (90, 180, 270)  # crop only; tried ONLY when no batch label was found
+TESSERACT_EVIDENCE_VARIANTS = 2  # preprocessing variants Tesseract runs when RapidOCR is primary
+CROP_UPSCALE_WHEN_NO_REGION = 1.3  # second RapidOCR view when no pack region was found
+
+# SHA-256 of the model files shipped inside rapidocr-onnxruntime==1.2.3 (verified before every load; a
+# mismatch makes RapidOCR unavailable and the pipeline falls back to Tesseract with a note).
+RAPIDOCR_MODEL_SHA256 = {
+    "ch_PP-OCRv3_det_infer.onnx": "3439588c030faea393a54515f51e983d8e155b19a2e8aba7891934c1cf0de526",
+    "ch_PP-OCRv3_rec_infer.onnx": "897a3ededb38fee0dae2c1ccee38241f37df202c9509e3abca02e9217c5ee615",
+    "ch_ppocr_mobile_v2.0_cls_infer.onnx": "e47acedf663230f8863ff1ab0e64dd2d82b838fceb5957146dab185a89d6215c",
+}
+
+# --- Manual batch entry ----------------------------------------------------------
+MANUAL_BATCH_MAX_CHARS = 30
+
 # --- Extraction / matching (UNCALIBRATED) --------------------------------------
 MIN_AGREEING_OCR_PASSES = 2
 MIN_BATCH_KEY_LENGTH = 3
+MAX_BATCH_LETTER_RUN = 5  # longest run of letters in any of the 220 listed batches; longer runs are words, not batches
+BATCH_ALLOWED_CHARS = r"A-Za-z0-9 \-/.,"  # the character set observed in every listed batch; others mean OCR garbage
+EDGE_MARGIN_FRACTION = 0.012  # a text line this close to the image/crop edge may be cut off
+EDGE_MARGIN_MIN_PX = 6
 SHORT_BATCH_KEY_LENGTH = 6  # shorter keys need stronger corroboration
 BRAND_MATCH_MIN_SCORE = 90
 INGREDIENT_MATCH_MIN_SCORE = 88

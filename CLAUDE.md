@@ -21,6 +21,8 @@ MedCheck: photo-based medicine batch verification using local OCR and conservati
 | Tests | `docs/TESTING_GUIDELINES.md` |
 | 60-image evaluation protocol | `docs/EVALUATION.md` |
 | Independent review process (Antigravity) | `docs/REVIEW_PROCESS.md` |
+| OCR engines: install, licences, offline, model hashes | `docs/OCR_ENGINES.md` |
+| OCR failure investigation and V2 design evidence | `docs/OCR_INVESTIGATION.md` |
 | Run, demo, limitations | `README.md` |
 `docs/archive/` is history only; do not follow it over the files above.
 
@@ -31,7 +33,9 @@ MedCheck: photo-based medicine batch verification using local OCR and conservati
 - Never silently substitute O/0, I/1, S/5, B/8. Preserve raw OCR/dataset strings; compare via separate normalized copies. Serials 38/157 are the required collision test.
 - Do not emit `Expired` until the owner approves the month-only expiry policy (D-007, `config.EXPIRY_POLICY_APPROVED`).
 - Never claim safe, genuine, authentic or defect-free; always show the dataset period; no medical advice.
-- No image persistence, no logging of image bytes, filenames or OCR text, no network calls, no telemetry, no cloud OCR. Streamlit stays bound to localhost.
+- No image persistence, no logging of image bytes, filenames, OCR text or typed batch numbers, no network calls, no telemetry, no cloud OCR. Streamlit stays bound to localhost.
+- A user-typed or user-corrected batch is never OCR evidence and never corroborates the product; it uses the same matching and abstention rules and stays labelled by `BatchSource`. OCR scores are never evidence of identity.
+- The held-out photographs listed in `evaluation/heldout_ids.txt` are never opened or processed until the design is frozen (`--include-heldout`, once).
 - Never present accuracy numbers unless produced by an actual evaluation run recorded per `docs/EVALUATION.md`.
 
 ## Dataset rules
@@ -44,7 +48,7 @@ Work in small verified milestones: objective -> implement -> run tests -> fix fa
 Permanently deleting source files or historical data; overwriting the official extraction; replacing source values with inferred corrections; weakening safety/abstention rules; publishing or deploying; uploading private data anywhere; irreversible changes outside this directory; approving any OPEN decision.
 
 ## Conventions
-Python 3.13, virtualenv `.venv`, dependencies pinned in `requirements.txt` (verified together; `pip install -r requirements.txt`). Thresholds live only in `medcheck/config.py` and are labelled UNCALIBRATED. Pure deterministic logic in normalization/matching/decision; the UI holds no matching rules. Type-hint public functions. Tests must be real: no hard-coded results, report only commands actually run.
+Python 3.13, virtualenv `.venv`, dependencies pinned in `requirements.txt` and `requirements-ocr.txt` (verified together; the latter is installed with `--no-deps`, see `docs/OCR_ENGINES.md`). Thresholds live only in `medcheck/config.py` and are labelled UNCALIBRATED. Pure deterministic logic in normalization/matching/decision; the UI holds no matching rules. Type-hint public functions. Tests must be real: no hard-coded results, report only commands actually run.
 
 ## Review protocol
 Claude Code owns all edits. Antigravity (or any other reviewer) reads and reports defects per `docs/REVIEW_PROCESS.md`; it never edits files concurrently.

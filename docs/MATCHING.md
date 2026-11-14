@@ -22,6 +22,15 @@ Evaluated in this order for a cleanly-read batch:
 Identity is corroborated when **brand** (a real brand name or alias from the dataset name, `NA` excluded, or the whole name when it contains no generic words, e.g. `DEC-Plus`) **or all required active-ingredient words** are found in the photo text, and there is no strength/form conflict. Salt words (sodium, potassium, hydrochloride...) are not required. **Short batches** (key shorter than 6 characters) need two independent signals: all ingredient words **and** (brand or manufacturer). Manufacturer alone never corroborates.
 Simulated check on the real dataset (perfect text, no OCR involved): with the full label text 218/220 rows confirm and 38/157 abstain; with the product name only 204 confirm, 14 short-batch rows are uncorroborated and 38/157 abstain. This characterises the rules, not OCR accuracy.
 
+## Extraction safeguards that feed matching (V2)
+- A batch is read only from a label (`B.No.`, `Batch`, `Lot`, ...). The value ends at the next label even when OCR dropped the space (`5BA1617MFD` -> `5BA1617`); a value that is only label words, has no digit, is shorter than 3 or longer than 20 characters is rejected, not trimmed into something plausible.
+- Strict agreement: all passes that report a batch must agree on the normalised key; any different reading is AMBIGUOUS. Tesseract readings take part; a disagreeing one makes the batch AMBIGUOUS. A single supporting pass is not enough; exactly one extra confirmation pass at another scale is allowed, never a retry until readings agree.
+- Provenance: `BatchField.reading_sources` records every raw reading with `engine:view`. OCR scores are never used as evidence.
+- Near-neighbour abstention (edit distance up to 2 for keys of 6+ characters) covers the misreads observed in the investigation (`HLAS50019`, `5BA13A7`, `INA26083`, `18261604K8`) whenever the true batch is listed (tested). It cannot cover a larger misread; the decision text therefore shows the batch checked.
+
+## Manual entry (D-024)
+A typed or corrected batch enters `match_batch` exactly like an OCR batch, with product corroboration taken only from the photo's OCR text. It is recorded as `BatchSource.USER_ENTERED` or `USER_CORRECTED` on the decision, adds a caveat saying so, and a clean negative (`No alert found`) requires the user's confirmation that the number was compared with the pack; otherwise the result is `Unable to verify` (`manual_entry_unconfirmed`). Collision (38/157), near-neighbour, uncorroborated and conflict outcomes behave identically to OCR batches.
+
 ## Decision table (`decision.decide`)
 | Condition | Result |
 |---|---|

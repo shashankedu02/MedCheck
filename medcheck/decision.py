@@ -14,7 +14,10 @@ Wording must never call a medicine safe, genuine, authentic or free of defects.
 """
 from __future__ import annotations
 
+from dataclasses import replace
+
 from .models import (
+    BatchSource,
     Decision,
     ExpiryAssessment,
     ExpiryOutcome,
@@ -63,7 +66,7 @@ def _unable(code: str, why: str, extra: tuple[str, ...] = (), evidence: tuple[st
     )
 
 
-def decide(
+def _decide_core(
     *,
     system_failure: SystemFailure | None,
     batch_state: FieldState,
@@ -136,3 +139,57 @@ def decide(
         caveats=(*expiry_caveats, f"Only the {dataset_period} CDSCO NSQ list was checked; other months and sources were not.", LIMITATION_TEXT),
         evidence=ev,
     )
+
+
+_SOURCE_NOTE = {
+    BatchSource.USER_CORRECTED: "The batch number was corrected by you; it is not exactly what was read from the photo. This result applies to the batch you entered.",
+    BatchSource.USER_ENTERED: "The batch number was typed by you; it was not read from the photo. This result applies to the batch you entered.",
+}
+
+
+def decide(
+    *,
+    system_failure: SystemFailure | None,
+    batch_state: FieldState,
+    match: MatchAssessment | None,
+    expiry: ExpiryAssessment,
+    dataset_period: str,
+    expiry_anomaly: bool = False,
+    batch_source: BatchSource = BatchSource.OCR,
+    batch_raw: str | None = None,
+    entry_confirmed: bool = False,
+) -> Decision:
+    """Core decision plus provenance rules.
+
+    * A user-supplied batch never counts as OCR evidence and goes through exactly the same matching
+      (collision, near-neighbour abstention, corroboration from the *photo's* text).
+    * A clean negative (No alert found / Expired) for a user-supplied batch needs the user to confirm
+      they compared it with the pack, because a typing error would otherwise produce false reassurance.
+    * Every decision that used a batch records which batch string was matched and where it came from.
+    """
+    manual = batch_source is not BatchSource.OCR
+    if (manual and system_failure is None and batch_state is FieldState.READ and match is not None
+            and match.outcome is MatchOutcome.NO_MATCH and not entry_confirmed):
+        return replace(
+            _unable(
+                "manual_entry_unconfirmed",
+                "No listed batch matches the number you entered, but a typing error could hide a match. "
+                "Compare the number with the pack and tick the confirmation box to continue.",
+                evidence=match.evidence,
+            ),
+            batch_source=batch_source,
+            batch_as_read=batch_raw,
+        )
+    d = _decide_core(
+        system_failure=system_failure, batch_state=batch_state, match=match, expiry=expiry,
+        dataset_period=dataset_period, expiry_anomaly=expiry_anomaly,
+    )
+    if d.is_system_error or batch_state is not FieldState.READ or match is None:
+        return d
+    explanation, caveats = d.explanation, d.caveats
+    if d.status is Status.NO_ALERT_FOUND and batch_raw:
+        explanation += f" Batch checked: {batch_raw}. Compare it with the number printed on the pack."
+    if manual:
+        explanation = explanation.replace("The batch number read from the photo", "The batch number you entered")
+        caveats = (_SOURCE_NOTE[batch_source], *caveats)
+    return replace(d, explanation=explanation, caveats=caveats, batch_source=batch_source, batch_as_read=batch_raw)

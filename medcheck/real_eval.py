@@ -84,6 +84,11 @@ class EvalRecord:
     ground_truth_verified_by: str = ""
     evaluation_status: str = STATUS_PENDING
     evaluation_note: str = ""
+    engines: str = ""  # OCR engines that contributed passes (provenance)
+    batch_sources: str = ""  # every raw batch reading with the engine:view that produced it
+    batch_reference: str = ""  # independently read batch (only when a reference exists)
+    reference_tier: str = ""  # certain | probable (only "certain" is scored)
+    batch_result: str = ""  # exact | incorrect | ambiguous | not_found | not_processed | unscored | no_reference
 
 
 CSV_COLUMNS = [f.name for f in fields(EvalRecord)]
@@ -215,6 +220,49 @@ def apply_ground_truth(rec: EvalRecord, gt: dict[str, dict[str, str]]) -> EvalRe
     return rec
 
 
+# ---------------------------------------------------------------- reference batches and held-out set
+def load_heldout(path: Path) -> set[str]:
+    """Test IDs reserved as held-out. Lines are numbers or Txxx; '#' starts a comment."""
+    if not path.exists():
+        return set()
+    ids: set[str] = set()
+    for line in path.read_text(encoding="utf-8").splitlines():
+        s = line.split("#", 1)[0].strip()
+        if s:
+            ids.add(f"T{int(s):03d}" if s.isdigit() else s.upper())
+    return ids
+
+
+def load_reference(path: Path) -> dict[str, tuple[str, str]]:
+    """test_id -> (batch exactly as read independently, tier). Only tier 'certain' is scored."""
+    if not path.exists():
+        return {}
+    with path.open(newline="", encoding="utf-8-sig") as fh:
+        return {r["test_id"].strip(): (r["reference_batch"].strip(), r["tier"].strip())
+                for r in csv.DictReader(fh) if r.get("test_id")}
+
+
+def apply_reference(rec: EvalRecord, ref: dict[str, tuple[str, str]]) -> EvalRecord:
+    """Score the batch field against an independently read reference. Never uses MedCheck output as truth."""
+    from .normalization import batch_key
+
+    batch, tier = ref.get(rec.test_id, ("", ""))
+    rec.batch_reference, rec.reference_tier = batch, tier
+    if rec.actual_outcome in NON_RESULTS:
+        rec.batch_result = "not_processed"
+    elif not batch:
+        rec.batch_result = "no_reference"
+    elif tier != "certain":
+        rec.batch_result = "unscored"
+    elif rec.batch_state == "read":
+        rec.batch_result = "exact" if batch_key(rec.batch_raw).key == batch_key(batch).key else "incorrect"
+    elif rec.batch_state == "ambiguous":
+        rec.batch_result = "ambiguous"
+    else:
+        rec.batch_result = "not_found"
+    return rec
+
+
 # ---------------------------------------------------------------- processing
 def _one_line(text: str, limit: int) -> str:
     s = " ".join((text or "").split())
@@ -252,6 +300,9 @@ def record_from_scan(res, rec: EvalRecord) -> EvalRecord:
     if res.matched_record is not None:
         rec.matched_dataset_product = _one_line(res.matched_record.product_name, 200)
         rec.matched_dataset_manufacturer = _one_line(res.matched_record.manufactured_by, 200)
+    if ex is not None:
+        rec.batch_sources = " | ".join(f"{raw}@{src}" for raw, src in ex.batch.reading_sources)
+    rec.engines = " ".join(res.engines)
     rec.ocr_passes = str(res.ocr_passes)
     rec.ocr_variants = " ".join(res.variants_used)
     rec.ocr_engine = res.engine_version or ""
@@ -260,12 +311,16 @@ def record_from_scan(res, rec: EvalRecord) -> EvalRecord:
 
 
 def process_folder(folder: Path, check: Callable[[bytes], object], run_id: str,
-                   gt: dict[str, dict[str, str]]) -> list[EvalRecord]:
-    """Process every file in `folder`. One bad file never stops the run."""
+                   gt: dict[str, dict[str, str]], *, skip_ids: set[str] | None = None,
+                   reference: dict[str, tuple[str, str]] | None = None) -> list[EvalRecord]:
+    """Process every file in `folder` except `skip_ids` (the held-out set: those files are never even opened).
+    One bad file never stops the run."""
     records: list[EvalRecord] = []
     seen_ids: dict[str, str] = {}
     seen_hashes: dict[str, str] = {}
     for path in discover(folder):
+        if skip_ids and test_id_for(path) in skip_ids:
+            continue
         rec = EvalRecord(run_id=run_id, test_id=test_id_for(path), filename=path.name)
         try:
             data = path.read_bytes()
@@ -289,7 +344,7 @@ def process_folder(folder: Path, check: Callable[[bytes], object], run_id: str,
         except Exception as exc:  # noqa: BLE001 - recorded by type only (no content)
             rec.actual_outcome, rec.processing_error = OUT_ERROR, type(exc).__name__
             rec.reason_code = "processing_error"
-        records.append(apply_ground_truth(rec, gt))
+        records.append(apply_reference(apply_ground_truth(rec, gt), reference or {}))
     return records
 
 
@@ -355,6 +410,8 @@ def summarize(records: list[EvalRecord]) -> dict:
         "pending": count("evaluation_status", STATUS_PENDING),
         "inconclusive": count("evaluation_status", STATUS_INCONCLUSIVE),
         "failed": [r.test_id for r in records if r.actual_outcome in NON_RESULTS],
+        "batch_result": {k: sum(1 for r in records if r.batch_result == k)
+                         for k in ("exact", "incorrect", "ambiguous", "not_found", "unscored", "no_reference", "not_processed")},
     }
 
 
@@ -364,7 +421,7 @@ def format_report(records: list[EvalRecord], ctx: dict) -> str:
     L = [f"# MedCheck real-photograph evaluation: {ctx['run_id']}", ""]
     L += ["## Run information", ""]
     for k in ("run_id", "started_at", "git_commit", "git_dirty", "dataset_period", "dataset_sha256", "photo_folder",
-              "ocr_engine", "ground_truth_file", "source_run"):
+              "ocr_engine", "ground_truth_file", "source_run", "heldout_excluded"):
         if k in ctx and ctx[k] not in (None, ""):
             L.append(f"- **{k}**: {ctx[k]}")
     L += ["", "## Read this first", "",
@@ -381,6 +438,13 @@ def format_report(records: list[EvalRecord], ctx: dict) -> str:
     L += [f"| {_md(k)} | {v} |" for k, v in sorted(s["by_outcome"].items())]
     L += ["", f"Evaluation status: Correct **{s['correct']}**, Incorrect **{s['incorrect']}**, "
           f"Pending **{s['pending']}**, Inconclusive **{s['inconclusive']}**.", ""]
+    br = s["batch_result"]
+    scored = br["exact"] + br["incorrect"] + br["ambiguous"] + br["not_found"]
+    L += ["## Batch extraction against the independent reference (diagnostic)", "",
+          f"Scored images (reference tier 'certain'): **{scored}**. Exact **{br['exact']}**, incorrect **{br['incorrect']}**, "
+          f"ambiguous (abstained) **{br['ambiguous']}**, not found **{br['not_found']}**. Unscored (probable reference) {br['unscored']}, "
+          f"no reference {br['no_reference']}. The reference was read by eye, not checked against physical packs; "
+          "these counts are not an accuracy estimate.", ""]
     L += ["## Per-image results", "",
           "| Test ID | File | Size | Actual outcome | Batch (state) | Expiry | Mfg | Expected | Status |",
           "|---|---|---|---|---|---|---|---|---|"]
@@ -396,6 +460,9 @@ def format_report(records: list[EvalRecord], ctx: dict) -> str:
         for label, val in (("Why", r.abstention_reason or r.explanation), ("Processing error", r.processing_error),
                            ("Batch note", r.batch_note), ("Batch readings across passes", r.batch_readings),
                            ("Match", f"{r.match_outcome}: {r.match_reason}" if r.match_outcome else ""),
+                           ("Engines", r.engines), ("Batch readings with source", r.batch_sources),
+                           ("Batch reference / result",
+                            f"{r.batch_reference} ({r.reference_tier}) -> {r.batch_result}" if r.batch_reference else ""),
                            ("Candidate serials", r.candidate_serials), ("Matched serial", r.matched_serial),
                            ("Duplicate of", r.duplicate_of), ("Evaluation note", r.evaluation_note),
                            ("OCR passes / variants", f"{r.ocr_passes} / {r.ocr_variants}" if r.ocr_passes else "")):
@@ -420,17 +487,18 @@ def write_run(results_dir: Path, run_id: str, records: list[EvalRecord], ctx: di
     return run_dir
 
 
-def rescore(results_dir: Path, source_run: str, gt: dict[str, dict[str, str]]) -> tuple[str, list[EvalRecord], dict]:
+def rescore(results_dir: Path, source_run: str, gt: dict[str, dict[str, str]], *, skip_ids: set[str] | None = None,
+            reference: dict[str, tuple[str, str]] | None = None) -> tuple[str, list[EvalRecord], dict]:
     """Re-apply the *current* ground truth to a past run's recorded outputs (no re-processing)."""
     src = results_dir / "runs" / source_run
     if not (src / "evaluation_results.csv").exists():
         raise FileNotFoundError(f"no such run: {source_run}")
     info = json.loads((src / "run_info.json").read_text(encoding="utf-8")) if (src / "run_info.json").exists() else {}
-    records = read_csv(src / "evaluation_results.csv")
+    records = [r for r in read_csv(src / "evaluation_results.csv") if r.test_id not in (skip_ids or set())]
     run_id = new_run_id(results_dir)
     for r in records:
         r.run_id = run_id
-        apply_ground_truth(r, gt)
+        apply_reference(apply_ground_truth(r, gt), reference or {})
     ctx = {**{k: v for k, v in info.items() if k != "summary"}, "run_id": run_id,
            "started_at": datetime.now().isoformat(timespec="seconds"), "source_run": source_run}
     return run_id, records, ctx

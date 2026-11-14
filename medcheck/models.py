@@ -19,6 +19,14 @@ class Status(str, Enum):
     UNABLE_TO_VERIFY = "Unable to verify"
 
 
+class BatchSource(str, Enum):
+    """Where the batch number used for matching came from. Never conflated."""
+
+    OCR = "ocr"  # read by an OCR engine from the photo
+    USER_CORRECTED = "user_corrected"  # OCR read something, the user changed it
+    USER_ENTERED = "user_entered"  # OCR read nothing usable, the user typed it
+
+
 class FieldState(str, Enum):
     NOT_FOUND = "not_found"
     AMBIGUOUS = "ambiguous"  # several plausible values, or passes disagree
@@ -82,7 +90,19 @@ class Decision:
     matched_serial: int | None = None
     system_failure: SystemFailure | None = None
     evidence: tuple[str, ...] = field(default_factory=tuple)
+    batch_source: BatchSource = BatchSource.OCR
+    batch_as_read: str | None = None  # the batch string that was actually matched (raw)
 
     @property
     def is_system_error(self) -> bool:
         return self.system_failure is not None
+
+
+@dataclass(frozen=True)
+class ManualEntry:
+    """A batch number supplied by the user. Kept apart from OCR evidence everywhere."""
+
+    raw: str
+    key: str
+    source: BatchSource  # USER_CORRECTED or USER_ENTERED (or OCR when the user merely confirmed the OCR value)
+    confirmed: bool  # user ticked "I compared this with the pack"

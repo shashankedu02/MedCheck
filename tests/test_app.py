@@ -179,3 +179,47 @@ def test_camera_flow_uses_same_pipeline():
 def test_streamlit_config_is_local_and_telemetry_free():
     cfg = (Path(APP).parent / ".streamlit" / "config.toml").read_text()
     assert 'address = "localhost"' in cfg and "gatherUsageStats = false" in cfg and "maxUploadSize = 10" in cfg
+
+
+# ---- manual batch entry in the UI (V2) ----
+def _button(at, label):
+    return next(b for b in at.button if b.label == label)
+
+
+def test_manual_entry_flow_in_the_ui():
+    at = run_with(result_for(MatchOutcome.NO_MATCH, batch_state=FieldState.NOT_FOUND))
+    assert any("batch number yourself" in s.value for s in at.subheader)
+    assert at.text_input(key="manual_text").value == ""  # nothing was read cleanly, so nothing is guessed/prefilled
+
+    at.text_input(key="manual_text").set_value("TG261185").run()
+    _button(at, "Check this batch number").click().run()
+    assert not at.exception
+    res = at.session_state["result"]
+    # the fixture's OCR had conflicting readings (AB123/AB124), so the user's value counts as a correction
+    assert res.decision.status is Status.ALERT_FOUND and res.manual.source.value == "user_corrected"
+    assert "corrected by you" in all_text(at) and "not read from the photo" in all_text(at)
+
+    at.text_input(key="manual_text").set_value("ZX99001Q").run()
+    _button(at, "Check this batch number").click().run()  # unlisted, not confirmed -> must not reassure
+    assert at.session_state["result"].decision.reason_code == "manual_entry_unconfirmed"
+    at.checkbox(key="manual_confirmed").check().run()
+    _button(at, "Check this batch number").click().run()
+    assert at.session_state["result"].decision.status is Status.NO_ALERT_FOUND
+    assert "Batch checked: ZX99001Q" in all_text(at)
+
+
+def test_manual_entry_shows_a_friendly_error_for_bad_input():
+    at = run_with(result_for(MatchOutcome.NO_MATCH, batch_state=FieldState.NOT_FOUND))
+    at.text_input(key="manual_text").set_value("AB").run()
+    _button(at, "Check this batch number").click().run()
+    assert not at.exception and any("at least" in w.value for w in at.warning)
+
+
+def test_clean_ocr_value_is_prefilled_for_review():
+    at = run_with(result_for(MatchOutcome.UNCORROBORATED, serial=4))
+    assert at.text_input(key="manual_text").value == "TG261185"
+
+
+def test_no_manual_form_for_rejected_photo_or_system_error():
+    rejected = ScanResult(rejection=ImageRejected("too_small", "The image is too small."))
+    assert not any("batch number yourself" in s.value for s in run_with(rejected).subheader)

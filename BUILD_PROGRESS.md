@@ -4,6 +4,8 @@ Single source of truth for resuming development. Update at the end of every mile
 Run tests with: `.venv\Scripts\python.exe -m pytest -q`
 
 ## Current state
+**V2 (M9) is implemented**: RapidOCR primary engine with Tesseract as extra evidence/fallback, glue-aware parser, rotation/crop cascade, manual batch entry (D-022..D-024). Real-photograph accuracy is still **not** evaluated (diagnostic runs on 20 development photos only; 7 photos are reserved and untouched).
+
 All milestones M0-M6 are complete and committed. The application starts, accepts uploads, runs local OCR, extracts fields, matches against the dataset, and handles all four outcomes plus system errors. **Real-photograph accuracy has not been evaluated** (D-014 open), and `Expired` is intentionally disabled (D-007 open). See "What remains".
 
 ## Milestones
@@ -37,9 +39,27 @@ All milestones M0-M6 are complete and committed. The application starts, accepts
 
 **M8 (OCR investigation, no production change)** - see `docs/OCR_INVESTIGATION.md`; scripts in `experiments/ocr_investigation/` (outputs git-ignored). Held-out T009/T012/T015/T018/T021/T024/T027 never opened. Finding: engine (Tesseract vs a detector-based engine such as RapidOCR) dominates; orientation and crop are secondary; preprocessing/scale/denoise did not matter. Needs owner decision D-022 (new dependency) before implementing.
 
+**M9 (V2: RapidOCR, parser, cascade, manual entry)** - `medcheck/ocr_rapid.py`, `regions.py`, parser/guards in `extraction.py`, cascade + `verify_manual` in `pipeline.py`, `BatchSource` provenance in `models.py`/`decision.py`, manual-entry UI in `app.py`, `requirements-ocr.txt` (pinned, `--no-deps`), model SHA-256 pins in `config.py`, `docs/OCR_ENGINES.md`, tests `test_v2_*.py` (+ additions to `test_app.py`, `test_pipeline.py`, `test_real_eval.py`). Safeguards unchanged: strict agreement, near-neighbour abstention (edit distance 2), O/0 collision (38/157), product corroboration, expiry disabled.
+- **Diagnostic comparison on the same 20 development photos** (baseline `run_20261114_200938` rescored as `run_20261114_224752`; V2 final `run_20261114_224212`; the two earlier V2 runs `..._222616` and `..._223449` were pre-guard and are kept as history):
+
+| | Baseline (Tesseract) | V2 |
+|---|---|---|
+| Outcomes | 20 x Unable to verify | 15 x Unable to verify, 5 x No alert found |
+| Batch state | 18 not found, 2 ambiguous | 5 read, 9 ambiguous, 6 not found |
+| Exact vs the 7 certain references | 0 | 3 (T006, T013, T014) |
+| Incorrect reads accepted (certain refs) | 0 | 0 |
+| Ambiguous (abstained) on certain refs | 1 | 4 (T003, T010, T011, T026: conflicting or single-pass readings) |
+| Dates read (expiry / mfg) | 0 / 0 | 7 / 7 (not scored; expiry disabled) |
+| Seconds per photo (mean / median / max) | 6.7 / 6.8 / 9.4 | 14.0 / 13.7 / 23.2 |
+
+- **Safety findings during the diagnostic runs (fixed, with tests):** `30 deg C. Protect` (sentence fragment after a stray label) was accepted as a batch in the second V2 run and produced `No alert found` (T023); parser now rejects characters never seen in a listed batch and letter runs longer than 5, and ignores lines touching the image/crop edge. T019 was wrongly suspected to be cut off (erratum in `docs/OCR_INVESTIGATION.md`); its `SIH1166A` looks complete.
+- **Open items for the owner:** (1) T008 returns `25S3GTA4` from both views and gives `No alert found`, but an embossed dimple may hide a further character; check T008 on the pack. (2) The seven certain references were read by eye by an AI model and need confirming on the physical packs. (3) Remaining `No alert found` results on development photos: T006, T013, T014 (exact), T008 (unverified), T019 (plausible).
+- **Not done (by instruction):** the 7 reserved photographs were not opened or processed; no 60-image evaluation.
+
 ## Test results (last run)
-- **Main venv after M7**: `pytest -q` -> **204 passed** (about 117 s). Earlier fresh-venv run before M7: 194 passed.
-- **Fresh venv built only from `requirements.txt`** (before M7): `pytest -q` -> **194 passed** (about 34 s).
+- **V2, fresh venv built only from `requirements.txt` + `requirements-ocr.txt --no-deps`**: `pytest -q` -> **294 passed** (140 s). `pip check` reports only the expected `opencv-python` note for rapidocr-onnxruntime.
+- (Older) **Main venv after M7**: `pytest -q` -> **204 passed** (about 117 s). Earlier fresh-venv run before M7: 194 passed.
+- (Older) **Fresh venv built only from `requirements.txt`** (before M7): `pytest -q` -> **194 passed** (about 34 s).
 - Live app: `streamlit run app.py` started, `/_stcore/health` = ok, socket on 127.0.0.1 only.
 - Not run: any evaluation on real photographs.
 
@@ -47,17 +67,20 @@ All milestones M0-M6 are complete and committed. The application starts, accepts
 None.
 
 ## What remains (needs the owner or real data)
-1. **D-007 expiry policy**: approve how month-only expiry dates are interpreted, then set `config.EXPIRY_POLICY_APPROVED = True` (logic and boundary tests already exist) and update `docs/EXPIRY_POLICY.md` and `docs/DECISIONS.md`.
-2. **Ground truth for the 27 photos**: independently establish expected outcome per photo (`scripts\set_ground_truth.py`), then `scripts\run_evaluation.py --rescore <run_id>`. Investigate OCR failure on these photos (preprocessing, crop/rotation) only with the dev/heldout discipline in `docs/EVALUATION.md`.
-2b. **D-014 evaluation**: collect and label the 60 real photographs (source, consent, split), then run `scripts/evaluate.py` per `docs/EVALUATION.md`. Tune `config.py` thresholds on the `dev` split only. Until then make no accuracy claims.
-3. **Antigravity review**: follow `docs/REVIEW_PROCESS.md` (suggest starting with M3 and M5), then ask Claude Code to reconcile the findings.
-4. Possible improvements once real photos exist: deskew/perspective correction, relaxing the strict all-passes-agree batch rule if abstention is too high (must be justified by evaluation), more label vocabularies.
+1. **Confirm the reference batches and T008 on the physical packs** (see M9 open items), then add `ground_truth.csv` labels (`scripts/set_ground_truth.py`) and rescore.
+2. **D-007 expiry policy**: unchanged (disabled). Dates are being read (7/7 on the development set) but not used.
+3. **Held-out run**: after the design is frozen, run `scripts/run_evaluation.py --include-heldout` once on T009, T012, T015, T018, T021, T024, T027 and report as is.
+4. **D-014 60-image evaluation** per `docs/EVALUATION.md` before any accuracy claim.
+5. **Antigravity review** per `docs/REVIEW_PROCESS.md` (suggest M3, M5 and M9).
+6. Possible improvements (need evidence from labelled photos): deskew/perspective, speed (the cascade costs about 14 s per photo), reading batches hidden by embossing, a dark-ink-on-gold strategy.
 
 ## Verified environment
 Windows 11, Python 3.13.5, Tesseract 5.5.3 (`eng`, `osd` only), Git 2.56.1, streamlit 1.67.0, opencv-python-headless 5.0.0.93, numpy 2.5.4, pillow 13.0.0, RapidFuzz 3.14.6, pytest 9.2.0.
 
 ## Next action
-Owner: decide D-022 (RapidOCR dependency) and confirm the 7 reference batches against the physical packs. Then implement V2 per `docs/OCR_INVESTIGATION.md` section 9 (parser first).
+Owner: confirm the reference batches and T008 on the packs; then decide whether to run the held-out photographs.
+
+(Older) Owner: decide D-022 (RapidOCR dependency) and confirm the 7 reference batches against the physical packs. Then implement V2 per `docs/OCR_INVESTIGATION.md` section 9 (parser first).
 
 (Older) 
 Owner decisions D-007 and D-014 (above); then the Antigravity review.
