@@ -21,5 +21,23 @@ The manifest format is documented in the script header. The script refuses missi
 ## Reporting rules
 Keep every abstained or failed image in the denominators. Report false negatives and false positives separately and discuss each. Record hardware, OS, Tesseract version (`tesseract --version`), dataset SHA-256 (from `data/dataset_manifest.json`) and git commit. If the protocol is compromised (labels uncertain, tuning on heldout, leakage), say so and do not claim validated performance.
 
+## Automated real-photograph run (records only, no accuracy claim)
+Photographs placed in `evaluation/incoming_photos/` (git-ignored, read-only to the tool) are processed through the unchanged `MedCheckPipeline.check()` with one command:
+```powershell
+.\.venv\Scripts\python.exe scripts\run_evaluation.py
+```
+Code: `medcheck/real_eval.py` (no matching logic of its own), `scripts/run_evaluation.py`, `scripts/set_ground_truth.py`. It is separate from the app and from the 60-image metric script above.
+- **Test IDs** come from filenames (`7.jpeg` -> `T007`). Duplicate content is flagged (`duplicate_of`); a second file with the same ID, unsupported types and corrupt files get a recorded non-result and never stop the run. The run verifies by SHA-256 that originals are unchanged.
+- **Outputs** (git-ignored: they hold OCR text): every run writes `evaluation/results/runs/<run_id>/` (`evaluation_results.csv`, `evaluation_report.md`, `run_info.json` with git commit, dataset hash and period, Tesseract version). Run IDs never collide, so history is never overwritten. `evaluation/results/evaluation_results.csv` and `evaluation_report.md` are copies of the latest run.
+- **Three separate fields**: actual outcome (what MedCheck said), expected outcome (ground truth), evaluation status (`Correct`, `Incorrect`, `Pending`, `Inconclusive`). Everything is `Pending` until a label exists; a system error or rejected image is `Inconclusive`; an abstention where a decisive answer was expected is `Incorrect` (a miss).
+- **Ground truth** lives in `evaluation/ground_truth.csv` (tracked: labels only). It must come from the physical pack and the official list, never from MedCheck's output:
+```powershell
+.\.venv\Scripts\python.exe scripts\set_ground_truth.py T005 "Alert found" --serial 4 --batch <as printed> --verified-by "<who/what established it>"
+.\.venv\Scripts\python.exe scripts\run_evaluation.py --rescore <run_id>
+```
+`--rescore` re-applies current labels to a past run's recorded outputs as a new run, without re-processing.
+- Extracted product/manufacturer information is only the raw OCR text (truncated, in the CSV); there is no manufacturer extractor. The matched dataset record's product and manufacturer are shown separately when an alert fires.
+- Do not tune thresholds on these photographs unless they are designated `dev` under the protocol above.
+
 ## What is already verified (not an evaluation)
 Unit and integration tests, including synthetic-label runs through real Tesseract and the Streamlit widgets, are described in `docs/TESTING_GUIDELINES.md`.

@@ -32,8 +32,12 @@ All milestones M0-M6 are complete and committed. The application starts, accepts
 
 **M6** - `evaluation.py` + `scripts/evaluate.py` (abstentions stay in denominators, Wilson intervals), `scripts/make_demo_images.py` (+ test that every README demo row is true), `docs/EVALUATION.md`, `docs/REVIEW_PROCESS.md`; README, CLAUDE.md, AGENTS.md, TECH_STACK, TESTING_GUIDELINES, WORKFLOWS, CHANGELOG rewritten; superseded docs moved to `docs/archive/` with `git mv`; stale MANIFEST.md removed (hashes obsolete; in git history); pandas removed from requirements; docs link test added.
 
+**M7 (real-photograph evaluation workflow)** - `medcheck/real_eval.py`, `scripts/run_evaluation.py`, `scripts/set_ground_truth.py`, `tests/test_real_eval.py` (10 tests). Runs `evaluation/incoming_photos/` through the unchanged pipeline; per-run folders under `evaluation/results/runs/` (never overwritten), latest copies in `evaluation/results/`; ground truth separate (`evaluation/ground_truth.csv`, all Pending). Photos and results are git-ignored (private). Command: `.\.venv\Scripts\python.exe scripts\run_evaluation.py`.
+- First real run (`run_20261114_200938`): 27 files, 27 produced a verification outcome, 0 failures, originals unchanged. **All 27 = Unable to verify** (25 no batch label found, 2 ambiguous batch). OCR text on these photos is mostly noise. No ground truth exists, so nothing is scored; no thresholds or rules were changed in response.
+
 ## Test results (last run)
-- **Fresh venv built only from `requirements.txt`**: `pytest -q` -> **194 passed** (about 34 s).
+- **Main venv after M7**: `pytest -q` -> **204 passed** (about 117 s). Earlier fresh-venv run before M7: 194 passed.
+- **Fresh venv built only from `requirements.txt`** (before M7): `pytest -q` -> **194 passed** (about 34 s).
 - Live app: `streamlit run app.py` started, `/_stcore/health` = ok, socket on 127.0.0.1 only.
 - Not run: any evaluation on real photographs.
 
@@ -42,7 +46,8 @@ None.
 
 ## What remains (needs the owner or real data)
 1. **D-007 expiry policy**: approve how month-only expiry dates are interpreted, then set `config.EXPIRY_POLICY_APPROVED = True` (logic and boundary tests already exist) and update `docs/EXPIRY_POLICY.md` and `docs/DECISIONS.md`.
-2. **D-014 evaluation**: collect and label the 60 real photographs (source, consent, split), then run `scripts/evaluate.py` per `docs/EVALUATION.md`. Tune `config.py` thresholds on the `dev` split only. Until then make no accuracy claims.
+2. **Ground truth for the 27 photos**: independently establish expected outcome per photo (`scripts\set_ground_truth.py`), then `scripts\run_evaluation.py --rescore <run_id>`. Investigate OCR failure on these photos (preprocessing, crop/rotation) only with the dev/heldout discipline in `docs/EVALUATION.md`.
+2b. **D-014 evaluation**: collect and label the 60 real photographs (source, consent, split), then run `scripts/evaluate.py` per `docs/EVALUATION.md`. Tune `config.py` thresholds on the `dev` split only. Until then make no accuracy claims.
 3. **Antigravity review**: follow `docs/REVIEW_PROCESS.md` (suggest starting with M3 and M5), then ask Claude Code to reconcile the findings.
 4. Possible improvements once real photos exist: deskew/perspective correction, relaxing the strict all-passes-agree batch rule if abstention is too high (must be justified by evaluation), more label vocabularies.
 
