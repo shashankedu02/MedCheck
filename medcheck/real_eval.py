@@ -194,12 +194,18 @@ def set_ground_truth(path: Path, test_id: str, expected: str, *, verified_by: st
     save_ground_truth(path, gt)
 
 
-def score(actual: str, expected: str, matched_serial: str = "", expected_serial: str = "") -> tuple[str, str]:
+AWAITING_CONFIRMATION = "ocr_batch_unconfirmed"  # decision reason: clean negative withheld until a person checks the pack (D-026)
+
+
+def score(actual: str, expected: str, matched_serial: str = "", expected_serial: str = "", reason_code: str = "") -> tuple[str, str]:
     """Evaluation status kept separate from both the actual and expected outcomes."""
     if expected == PENDING or not expected:
         return STATUS_PENDING, "no independently verified ground truth yet"
     if actual not in VERIFICATION_OUTCOMES:
         return STATUS_INCONCLUSIVE, f"no verification outcome was produced ({actual})"
+    if reason_code == AWAITING_CONFIRMATION and expected == "No alert found":
+        return STATUS_INCONCLUSIVE, ("a clean negative is withheld until a person confirms the printed batch (D-026); "
+                                     "the tool cannot confirm it, so the batch string is scored separately (batch_result)")
     if actual == expected:
         if actual == "Alert found" and expected_serial and matched_serial and expected_serial != matched_serial:
             return STATUS_INCORRECT, f"alert on serial {matched_serial} but expected serial {expected_serial}"
@@ -216,7 +222,7 @@ def apply_ground_truth(rec: EvalRecord, gt: dict[str, dict[str, str]]) -> EvalRe
     rec.expected_serial = g.get("expected_serial", "")
     rec.ground_truth_verified_by = g.get("verified_by", "")
     rec.evaluation_status, rec.evaluation_note = score(
-        rec.actual_outcome, rec.expected_outcome, rec.matched_serial, rec.expected_serial)
+        rec.actual_outcome, rec.expected_outcome, rec.matched_serial, rec.expected_serial, rec.reason_code)
     return rec
 
 
@@ -410,6 +416,7 @@ def summarize(records: list[EvalRecord]) -> dict:
         "pending": count("evaluation_status", STATUS_PENDING),
         "inconclusive": count("evaluation_status", STATUS_INCONCLUSIVE),
         "failed": [r.test_id for r in records if r.actual_outcome in NON_RESULTS],
+        "awaiting_confirmation": [r.test_id for r in records if r.reason_code == AWAITING_CONFIRMATION],
         "batch_result": {k: sum(1 for r in records if r.batch_result == k)
                          for k in ("exact", "incorrect", "ambiguous", "not_found", "unscored", "no_reference", "not_processed")},
     }
@@ -434,6 +441,8 @@ def format_report(records: list[EvalRecord], ctx: dict) -> str:
     L += ["## Summary", "", f"- Files found: **{s['total']}**",
           f"- Produced a verification outcome: **{s['processed']}**",
           f"- Not processed / failed: **{len(s['failed'])}**" + (f" ({', '.join(s['failed'])})" if s["failed"] else ""),
+          f"- Clean negatives awaiting a person's confirmation of the printed batch (`{AWAITING_CONFIRMATION}`, reported as Unable to verify): "
+          f"**{len(s['awaiting_confirmation'])}**" + (f" ({', '.join(s['awaiting_confirmation'])})" if s["awaiting_confirmation"] else ""),
           "", "| Actual outcome | Count |", "|---|---|"]
     L += [f"| {_md(k)} | {v} |" for k, v in sorted(s["by_outcome"].items())]
     L += ["", f"Evaluation status: Correct **{s['correct']}**, Incorrect **{s['incorrect']}**, "

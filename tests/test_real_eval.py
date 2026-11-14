@@ -230,3 +230,11 @@ def test_reference_file_is_committed_and_marks_unverified_labels_as_such():
     ref = ev.load_reference(root / "evaluation" / "reference_batches.csv")
     assert sum(1 for _b, tier in ref.values() if tier == "certain") == 7
     assert not set(ref) & ev.load_heldout(root / "evaluation" / "heldout_ids.txt")  # no label for reserved photos
+
+
+def test_withheld_clean_negative_is_inconclusive_not_a_miss():
+    st = ev.score("Unable to verify", "No alert found", reason_code=ev.AWAITING_CONFIRMATION)
+    assert st[0] == ev.STATUS_INCONCLUSIVE and "confirms the printed batch" in st[1]
+    assert ev.score("Unable to verify", "Alert found", reason_code=ev.AWAITING_CONFIRMATION)[0] == ev.STATUS_INCORRECT  # alerts are automatic
+    assert ev.score("Unable to verify", "Unable to verify", reason_code=ev.AWAITING_CONFIRMATION)[0] == ev.STATUS_CORRECT
+    assert ev.score("Unable to verify", "No alert found")[0] == ev.STATUS_INCORRECT  # any other abstention is still a miss

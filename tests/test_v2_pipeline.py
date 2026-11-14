@@ -47,8 +47,11 @@ def test_two_agreeing_views_give_a_result_with_provenance_and_the_batch_checked(
     p, stub = pipe_with({V1: [ZX, "Paracetamol Tablets IP 500 mg"], V2: [ZX]})
     r = p.check(PHOTO)
     assert stub.calls == [V1, V2]  # no rotation retries when a batch was found
-    assert r.decision.status is Status.NO_ALERT_FOUND
-    assert "Batch checked: ZX99001Q" in r.decision.explanation and r.decision.batch_as_read == "ZX99001Q"
+    assert r.decision.status is Status.UNABLE_TO_VERIFY and r.decision.reason_code == "ocr_batch_unconfirmed"  # D-026
+    assert "ZX99001Q" in r.decision.explanation and r.decision.batch_as_read == "ZX99001Q"
+    done = p.verify_manual(r, "ZX99001Q", confirmed=True)
+    assert done.decision.status is Status.NO_ALERT_FOUND and done.decision.batch_confirmed is True
+    assert "Batch checked: ZX99001Q (confirmed by you against the pack)" in done.decision.explanation
     assert r.engines == ("rapidocr",) and r.engine_version == "stub-rapid 0"
     assert {"rapidocr:full_rot0", "rapidocr:full_x1.3"} <= set(r.variants_used)
     assert {s for _r, s in r.extraction.batch.reading_sources} == {"rapidocr:full_rot0", "rapidocr:full_x1.3"}

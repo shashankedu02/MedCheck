@@ -28,8 +28,11 @@ Simulated check on the real dataset (perfect text, no OCR involved): with the fu
 - Provenance: `BatchField.reading_sources` records every raw reading with `engine:view`. OCR scores are never used as evidence.
 - Near-neighbour abstention (edit distance up to 2 for keys of 6+ characters) covers the misreads observed in the investigation (`HLAS50019`, `5BA13A7`, `INA26083`, `18261604K8`) whenever the true batch is listed (tested). It cannot cover a larger misread; the decision text therefore shows the batch checked.
 
+## Confirmation of clean negatives (D-026)
+Two engines can agree on the same wrong look-alike character (`HLA50019` read for `HLAS0019`). When the true batch is listed, that misread is a near-neighbour and abstains; when it is not near any listed batch nothing in the data can reveal it, and automatic S/5 substitution is forbidden. So **no clean negative (`No alert found`, `Expired`) is shown for any batch string until the user has compared it with the pack and confirmed it**; the confirmed result records `batch_confirmed` and `Batch checked: <string> (confirmed by you against the pack)`. `Alert found` is never delayed: it needs an exact listed batch plus product corroboration, which a misread rarely satisfies. If the user cannot or does not confirm, the result stays `Unable to verify`. Confirming means the user checked the printed batch number; it does not show the medicine is genuine or safe. If someone ticks without looking, the result records their confirmation; no software can prevent that.
+
 ## Manual entry (D-024)
-A typed or corrected batch enters `match_batch` exactly like an OCR batch, with product corroboration taken only from the photo's OCR text. It is recorded as `BatchSource.USER_ENTERED` or `USER_CORRECTED` on the decision, adds a caveat saying so, and a clean negative (`No alert found`) requires the user's confirmation that the number was compared with the pack; otherwise the result is `Unable to verify` (`manual_entry_unconfirmed`). Collision (38/157), near-neighbour, uncorroborated and conflict outcomes behave identically to OCR batches.
+A typed or corrected batch enters `match_batch` exactly like an OCR batch, with product corroboration taken only from the photo's OCR text. It is recorded as `BatchSource.USER_ENTERED` or `USER_CORRECTED` on the decision, adds a caveat saying so, and a clean negative (`No alert found`) requires the user's confirmation that the number was compared with the pack; otherwise the result is `Unable to verify` (`manual_entry_unconfirmed`). Since D-026 the same requirement applies to an OCR-read batch. Collision (38/157), near-neighbour, uncorroborated and conflict outcomes behave identically to OCR batches.
 
 ## Decision table (`decision.decide`)
 | Condition | Result |
@@ -38,8 +41,9 @@ A typed or corrected batch enters `match_batch` exactly like an OCR batch, with 
 | Batch not found, or ambiguous/conflicting across OCR passes | Unable to verify |
 | COLLISION, UNCORROBORATED, CONFLICT or FUZZY_ONLY | Unable to verify |
 | CONFIRMED | **Alert found**; expiry adds only a caveat |
-| NO_MATCH and expiry verdict EXPIRED (never while D-007 is open) | Expired |
-| NO_MATCH otherwise | No alert found (period-limited wording) |
+| NO_MATCH, batch **not yet confirmed** by the user against the pack | **Unable to verify** (`ocr_batch_unconfirmed` for an OCR reading, `manual_entry_unconfirmed` for a typed/corrected one) |
+| NO_MATCH, confirmed, and expiry verdict EXPIRED (never while D-007 is open) | Expired |
+| NO_MATCH, confirmed, otherwise | No alert found (period-limited wording, batch checked shown) |
 
 `Expired` is never emitted while `EXPIRY_POLICY_APPROVED` is false (see `EXPIRY_POLICY.md`). `Expired` can never replace or hide an abstention. An alert always takes precedence over expiry.
 

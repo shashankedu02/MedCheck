@@ -6,7 +6,7 @@ Upload or capture a photo of a medicine strip or box. MedCheck reads the batch n
 | Outcome | Meaning |
 |---|---|
 | **Alert found** | The batch read from the photo matches one NSQ entry **and** the product details corroborate it. The matched record is shown. |
-| **No alert found** | A batch was read clearly and no qualifying entry exists in the August 2026 list. This does **not** mean the medicine is safe, genuine or free of defects. |
+| **No alert found** | A batch was read, no qualifying entry exists in the August 2026 list, **and you confirmed the batch matches the number printed on the pack**. This does **not** mean the medicine is safe, genuine or free of defects; confirming only means you checked the printed number. |
 | **Expired** | Reserved. **Never shown yet**: how month-only expiry dates should be interpreted is an open owner decision (see `docs/EXPIRY_POLICY.md`). |
 | **Unable to verify** | The batch could not be read consistently, or the evidence is ambiguous, conflicting or too weak. This is the deliberate safe default. |
 
@@ -45,7 +45,7 @@ Upload the images from `demo_images\` one at a time and press **Check this photo
 |---|---|---|
 | `1_alert_found.png` | Alert found (serial 4) | listed batch plus matching product |
 | `2_alert_found_trailing_comma.png` | Alert found (serial 150) | published batch ends with a comma; punctuation is ignored |
-| `3_no_alert_found.png` | No alert found | batch not in the list |
+| `3_no_alert_after_confirmation.png` | Unable to verify, then No alert found after you tick the confirmation | batch not in the list, but a clean negative needs you to compare the batch with the pack first |
 | `4_unable_batch_alone.png` | Unable to verify | listed batch, wrong product: a batch alone never alerts |
 | `5_unable_collision.png` | Unable to verify | serials 38 and 157 differ only by 0 vs letter O |
 | `6_unable_no_batch.png` | Unable to verify | no batch number present |
@@ -53,7 +53,7 @@ Upload the images from `demo_images\` one at a time and press **Check this photo
 These demo images are **synthetic rendered text**, built from public dataset values. They show how the software behaves; they are not evidence of accuracy on real photographs. `tests/test_demo.py` verifies every row above.
 
 ## Reviewing, correcting or typing the batch
-Under every result MedCheck shows the batch it read and lets you correct it or type it when OCR found none. A typed or corrected batch goes through the same checks, is labelled as yours, never counts as OCR evidence and never confirms the product; a typed number that matches nothing gives `No alert found` only after you tick that you compared it with the pack.
+Under every result MedCheck shows the batch it read and lets you correct it or type it when OCR found none. A typed or corrected batch goes through the same checks, is labelled as yours, never counts as OCR evidence and never confirms the product; a number that matches nothing (whether OCR read it, you corrected it or you typed it) gives `No alert found` only after you tick that you compared it with the one printed on the pack. Until you do, the result is `Unable to verify` and the batch is shown back to you, because OCR can read look-alike characters (S for 5, O for 0, I for 1) wrongly and consistently. An alert is never delayed for this.
 
 ## How matching stays cautious
 Exact normalized batch is the only route to an alert, and a product brand or all active-ingredient words must corroborate it (short batches need two independent signals). Look-alike characters (O/0, I/1/L, S/5, B/8) are never substituted; if another listed batch differs only by such characters, MedCheck abstains. Near-matches only ever lead to "Unable to verify". Details: `docs/MATCHING.md`.

@@ -68,6 +68,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"files: {s['total']}  verification outcomes: {s['processed']}  not processed/failed: {len(s['failed'])} {s['failed']}")
     for k, v in sorted(s["by_outcome"].items()):
         print(f"  {k}: {v}")
+    print(f"awaiting confirmation of the printed batch (clean negatives withheld, D-026): {len(s['awaiting_confirmation'])} {s['awaiting_confirmation']}")
     b = s["batch_result"]
     print(f"batch vs reference (certain tier): exact={b['exact']} incorrect={b['incorrect']} ambiguous={b['ambiguous']} not_found={b['not_found']}")
     print(f"evaluation status: correct={s['correct']} incorrect={s['incorrect']} pending={s['pending']} inconclusive={s['inconclusive']}")

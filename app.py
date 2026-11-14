@@ -31,7 +31,7 @@ def get_pipeline() -> MedCheckPipeline:
     return pipeline
 
 
-FIELD_WORDS = {FieldState.READ: "read consistently", FieldState.AMBIGUOUS: "uncertain", FieldState.NOT_FOUND: "not found"}
+FIELD_WORDS = {FieldState.READ: "agreed by the OCR passes - not yet checked against the pack", FieldState.AMBIGUOUS: "uncertain", FieldState.NOT_FOUND: "not found"}
 
 
 def show_field(label: str, state: FieldState, raw: str | None, note: str = "") -> None:
@@ -123,16 +123,19 @@ def render_manual_entry(pipeline: MedCheckPipeline, result: ScanResult) -> None:
     if result.rejection is not None or ex is None:
         return
     st.subheader("Check or enter the batch number yourself")
+    if result.decision is not None and result.decision.reason_code == "ocr_batch_unconfirmed":
+        st.info("Next step: compare the number below with the one printed on the pack, correct it if needed, tick the box and press the button.")
     st.caption(
         "Compare the number below with the one printed on the pack. If it is wrong or missing, type it exactly as printed "
-        "(keep letters and digits as they are: O is not 0, I is not 1)."
+        "(keep letters and digits as they are: O is not 0, I is not 1, S is not 5). "
+        "Confirming means you checked the printed batch number; it does not show the medicine is genuine or safe."
     )
     if "manual_text" not in st.session_state:
         st.session_state["manual_text"] = ex.batch.raw if ex.batch.state is FieldState.READ and ex.batch.raw else ""
     # A confirmation belongs to the number it was given for: editing the number clears the tick.
     st.text_input("Batch number as printed on the pack", key="manual_text", max_chars=30,
                   on_change=lambda: st.session_state.__setitem__("manual_confirmed", False))
-    st.checkbox("I compared this number with the pack", key="manual_confirmed")
+    st.checkbox("I compared this number with the one printed on the pack (this confirms the printed number only)", key="manual_confirmed")
     if st.button("Check this batch number"):
         try:
             st.session_state["result"] = pipeline.verify_manual(result, st.session_state["manual_text"], bool(st.session_state.get("manual_confirmed")))

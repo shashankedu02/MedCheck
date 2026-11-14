@@ -92,6 +92,7 @@ class Decision:
     evidence: tuple[str, ...] = field(default_factory=tuple)
     batch_source: BatchSource = BatchSource.OCR
     batch_as_read: str | None = None  # the batch string that was actually matched (raw)
+    batch_confirmed: bool = False  # the user ticked 'I compared this number with the pack' for this result
 
     @property
     def is_system_error(self) -> bool:

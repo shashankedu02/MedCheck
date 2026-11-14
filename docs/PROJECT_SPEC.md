@@ -14,7 +14,7 @@ Build a local-first demonstrator that reads medicine-packaging text from a user-
 
 ## Required statuses
 - `Alert found`: the batch read from the photo matches exactly one row of the dataset (every row is an NSQ entry by construction of the CDSCO list) and corroborating product identity is present (`docs/MATCHING.md`).
-- `No alert found`: a sufficiently readable, non-ambiguous batch was checked successfully and no qualifying row matched in the configured snapshot.
+- `No alert found`: a sufficiently readable, non-ambiguous batch was checked successfully, no qualifying row matched in the configured snapshot, **and the user confirmed that the batch string matches the one printed on the pack (D-026)**. Until then the result is `Unable to verify`. Confirming means the user checked the printed batch number; it does not show the medicine is genuine or safe.
 - `Expired`: expiry has been reliably interpreted as expired under an owner-approved policy, and no confirmed NSQ alert takes precedence.
 - `Unable to verify`: OCR, identity, dataset integrity, or policy evidence is insufficient or conflicting.
 

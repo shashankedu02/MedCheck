@@ -4,6 +4,8 @@ Single source of truth for resuming development. Update at the end of every mile
 Run tests with: `.venv\Scripts\python.exe -m pytest -q`
 
 ## Current state
+**M11 (D-026 confirmation policy)** is done: no clean negative (`No alert found` / `Expired`) is shown for any batch string until the user has compared it with the pack and confirmed; `Alert found` is never delayed. Triggered by a loosely cropped T003 read as `HLA50019` by both engines (true `HLAS0019`).
+
 **M10 (V2 manual-testing review)** is done: see `docs/V2_REVIEW.md` and D-025. No safety rule changed; held-out photographs still untouched.
 
 **V2 (M9) is implemented**: RapidOCR primary engine with Tesseract as extra evidence/fallback, glue-aware parser, rotation/crop cascade, manual batch entry (D-022..D-024). Real-photograph accuracy is still **not** evaluated (diagnostic runs on 20 development photos only; 7 photos are reserved and untouched).
@@ -61,7 +63,15 @@ All milestones M0-M6 are complete and committed. The application starts, accepts
 **M10 (V2 manual-testing review)** - `docs/V2_REVIEW.md`, scripts in `experiments/v2_review/`. Findings: startup `ImportError` = stale running server (reproduced, not a defect; app now shows a restart message); strict agreement is the only policy that accepted zero wrong batches in replay; dropped-`F` (`MG.JUL.2025`) caused both the missing manufacturing date and the date glued into the batch; erratic times were the engine's default ONNX threading (10.9 s vs 0.5 s per pass, identical text). Changes: bounded ONNX threads, warm-up, Tesseract concurrent (interleaved A/B: 52.8 s -> 38.9 s over 8 photos, identical decisions in 72 runs), date/glue fixes, look-alike conflict explanation, confirmation cleared on edit. Tested and rejected: looser agreement, early-stop rotations, batch-line re-read.
 - Dev run `run_20261115_004829` vs the previous V2 run on the same 20 photos: outcomes and batch results identical (5 No alert found, 3 exact, 0 wrong, 4 abstained on the certain references); dates read 7 -> 8 (manufacturing) and 7 -> 8 (expiry). That run was slower (mean 21 s, max 63 s) because of background load, not the changes (see the interleaved A/B).
 
+**M11 (D-026: clean negatives need the user's confirmation)** - `decision.py` (gate and wording), `models.py` (`Decision.batch_confirmed`), `app.py` (label "agreed by the OCR passes - not yet checked against the pack", checkbox and caption explaining that confirmation checks the printed number only), `real_eval.py` (withheld negative scored Inconclusive, counted as awaiting confirmation), tests, docs (`PROJECT_SPEC`, `UI_UX_GUIDELINES`, `MATCHING`, `README`, `CLAUDE`, `ARCHITECTURE`, `OCR_ENGINES`, `EVALUATION`, `TESTING_GUIDELINES`, `DECISIONS` D-026, `V2_REVIEW` addendum).
+- **Reproduced** with the reporter's file (read-only): both RapidOCR views read `HLA50019` on every run; strict agreement accepted it; nearest listed batch is 4-5 edits away, so no match and `No alert found`. Root cause: the look-alike safeguards are relative to listed batches or to disagreement between readings; they cannot see two engines agreeing on the same wrong character, and automatic S/5 substitution is forbidden. My earlier review had overstated strict agreement's protection ("correctly conservative") and the UI said "read consistently"; both corrected.
+- **After the fix, same file:** `Unable to verify [ocr_batch_unconfirmed]`; user cannot confirm -> stays Unable; correct to `HLAS0019` and confirm -> `No alert found` (user_corrected); ticking `HLA50019` without looking -> recorded as the user's confirmation (no software can prevent that).
+- **Dev run `run_20261115_013421`** (same 20 photos, reserved 7 untouched): 20 x Unable to verify; the 5 clean negatives (T006, T008, T013, T014, T019) are withheld as `ocr_batch_unconfirmed`; batch results unchanged (3 exact, 0 incorrect, 4 abstained on the certain references). Alerts are unaffected (none occur in the dev set).
+- Tests: the old xfail for the gap now passes as a normal test; 12 existing tests updated for the new policy; one vacuous UI assertion (matched the page disclaimer) made strict; new tests for every batch source, `Expired`, alerts never delayed, grid invariant, UI wording and evaluation scoring.
+
 ## Test results (last run)
+- **After M11, main venv:** `pytest -q` -> **343 passed** (70 s).
+- (Older) After M10: 322 passed.
 - **After M10, main venv:** `pytest -q` -> **322 passed** (217 s on a loaded machine).
 - (Older) **V2 before the review, fresh venv**: 294 passed.
 - **V2, fresh venv built only from `requirements.txt` + `requirements-ocr.txt --no-deps`**: `pytest -q` -> **294 passed** (140 s). `pip check` reports only the expected `opencv-python` note for rapidocr-onnxruntime.

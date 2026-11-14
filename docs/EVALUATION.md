@@ -40,6 +40,7 @@ Code: `medcheck/real_eval.py` (no matching logic of its own), `scripts/run_evalu
 - Do not tune thresholds on these photographs unless they are designated `dev` under the protocol above.
 - **Held-out set.** `evaluation/heldout_ids.txt` reserves T009, T012, T015, T018, T021, T024, T027. `run_evaluation.py` skips them by default: the files are not opened, no placeholder label is created and the report names the exclusion. They are processed only with `--include-heldout`, once, after the design is frozen. Rescoring also excludes them.
 - **Independent batch reference.** `evaluation/reference_batches.csv` holds batches read by eye from zoomed crops (not from MedCheck output). Only tier `certain` is scored (`exact`, `incorrect`, `ambiguous`, `not_found`); `probable` rows are shown as `unscored`. The reference was produced by an AI model reading re-encoded photos and is **awaiting owner confirmation against the physical packs**; these counts are diagnostics, not accuracy figures.
+- **Clean negatives (D-026).** The tool cannot confirm a batch against a pack, so a clean negative is recorded as `Unable to verify` with reason `ocr_batch_unconfirmed` (the match outcome column still shows `no_match`). Against a `No alert found` label this is scored `Inconclusive`, not a miss; the batch string itself is scored through `batch_result`. The report counts these as "awaiting confirmation".
 - Records include engine provenance (`engines`, `batch_sources`: every raw reading with the engine and image view that produced it).
 
 ## What is already verified (not an evaluation)
