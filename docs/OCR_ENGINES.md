@@ -40,5 +40,5 @@ Compatible with local, non-commercial and commercial use; redistribution require
 
 ## Known limits
 - The recognition model is a general Chinese/English PP-OCRv3 model; accuracy on other scripts and print styles is unmeasured.
-- Typical cost on the development machine: roughly 2.3 s per RapidOCR pass, plus Tesseract; a photo with no readable batch label costs five RapidOCR passes (two views plus three rotations). Time budget: `config.OCR_TOTAL_BUDGET_SECONDS`.
+- Cost on the development machine (measured, `docs/V2_REVIEW.md` section 4): about 2 s per RapidOCR pass (the first call on new image content is about 2.8 times slower than a repeat call), Tesseract about 1 s per pass and run concurrently; typically 2.6-9.8 s per photo when a batch label is found, up to about 20 s when nothing is found and all three rotations run. ONNX threads are bounded to 4 (`config.RAPIDOCR_INTRA_OP_THREADS`) because the engine's default thread pool was up to 20 times slower and erratic under normal desktop load; wall-clock times vary with background load. The engine is warmed once when the app starts. Time budget: `config.OCR_TOTAL_BUDGET_SECONDS`.
 - Engines produce confident wrong characters (for example `HLAS50019` for `HLAS0019`). Safety rests on strict agreement, near-neighbour abstention and the displayed "Batch checked" line, not on the engine. See `docs/MATCHING.md`.

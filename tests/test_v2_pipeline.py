@@ -220,3 +220,116 @@ def test_cut_off_batch_never_gives_no_alert_found_end_to_end():
     r = MedCheckPipeline.load(rapid_engine=stub, tesseract_engine=None).check(PHOTO)
     assert r.decision.status is Status.UNABLE_TO_VERIFY and r.decision.reason_code == "batch_not_found"
     assert r.extraction.edge_ignored == ("SIH1166A",)
+
+
+# ---- speed fix: bounded ONNX threads, warm-up (manual-testing review) ----
+def _session_threads(engine):
+    ocr = engine._ocr
+    def sess(o):  # unwrap the library's wrappers (.infer / .session) down to the real ONNX InferenceSession
+        while not hasattr(o, "get_session_options"):
+            o = o.infer if hasattr(o, "infer") else o.session
+        return o
+
+    return {n: sess(getattr(ocr, n)).get_session_options().intra_op_num_threads
+            for n in ("text_detector", "text_recognizer", "text_cls")}
+
+
+def test_onnx_threads_are_bounded_and_the_library_default_is_restored():
+    import os
+
+    import rapidocr_onnxruntime.utils as rutils
+    from medcheck import config
+    from medcheck.ocr_rapid import RapidEngine
+
+    before = rutils.SessionOptions
+    eng = RapidEngine()
+    eng.check_available()
+    want = min(config.RAPIDOCR_INTRA_OP_THREADS, os.cpu_count() or 1)
+    assert set(_session_threads(eng).values()) == {want}
+    assert rutils.SessionOptions is before  # the library was patched only while its sessions were being built
+
+
+def test_thread_bound_can_be_switched_off(monkeypatch):
+    from medcheck import config
+    from medcheck.ocr_rapid import RapidEngine
+
+    monkeypatch.setattr(config, "RAPIDOCR_INTRA_OP_THREADS", 0)
+    eng = RapidEngine()
+    eng.check_available()
+    assert set(_session_threads(eng).values()) == {0}  # 0 = engine default
+
+
+def test_thread_bound_does_not_change_the_recognised_text():
+    import numpy as np
+
+    from medcheck import config
+    from medcheck.ocr_rapid import RapidEngine
+    from tests.helpers import font_path, render_label
+
+    if font_path() is None:
+        pytest.skip("no TrueType font")
+    img = np.asarray(render_label(["Paracetamol Tablets IP 500 mg", "B.No.: ZX99001Q   Mfg: 01/2026", "Exp: 12/2028"]))
+    bounded = RapidEngine().run(img, "v").lines
+    old = config.RAPIDOCR_INTRA_OP_THREADS
+    try:
+        config.RAPIDOCR_INTRA_OP_THREADS = 0
+        default = RapidEngine().run(img, "v").lines
+    finally:
+        config.RAPIDOCR_INTRA_OP_THREADS = old
+    assert bounded == default
+
+
+def test_warm_up_loads_the_models_and_never_raises():
+    from medcheck.ocr_rapid import RapidEngine
+
+    eng = RapidEngine()
+    p = MedCheckPipeline.load(rapid_engine=eng, tesseract_engine=None)
+    p.warm_up()
+    assert eng._ocr is not None  # models are loaded now, not inside the first check
+    MedCheckPipeline.load(rapid_engine=BrokenRapid({}), tesseract_engine=None).warm_up()  # a broken engine must not crash start-up
+    MedCheckPipeline.load(rapid_engine=None, tesseract_engine=None).warm_up()
+
+
+# ---- Tesseract runs concurrently with RapidOCR (manual-testing review): less waiting, identical evidence ----
+def test_tesseract_and_rapidocr_run_concurrently_with_identical_evidence(monkeypatch):
+    import time
+
+    from medcheck import pipeline as pl
+    from medcheck.ocr import EngineInfo
+
+    class SlowRapid(StubRapid):
+        def run(self, rgb, source):
+            time.sleep(0.4)
+            return super().run(rgb, source)
+
+    def slow_tesseract(variants, engine):
+        time.sleep(0.8)
+        return [OCRPass(v.variant_id, 6, (ZX,), (), engine="tesseract", source=v.variant_id) for v in variants], engine
+
+    monkeypatch.setattr(pl, "run_ocr", slow_tesseract)
+    stub = SlowRapid({V1: [ZX], V2: [ZX]})
+    p = MedCheckPipeline.load(rapid_engine=stub, tesseract_engine=EngineInfo("tesseract", "tesseract 0"))
+    t = time.perf_counter()
+    r = p.check(PHOTO)
+    wall = time.perf_counter() - t
+    assert wall < 0.4 * 2 + 0.8 - 0.3, wall  # sequential would be >= 1.6 s; concurrent is about max(0.8, 0.8)
+    assert r.engines == ("rapidocr", "tesseract") and r.ocr_passes == 2 + 2  # 2 RapidOCR views + 2 Tesseract variants
+    assert r.extraction.batch.state is FieldState.READ and r.engine_version == "stub-rapid 0; tesseract 0"
+    assert [p_.split(":")[0] for p_ in sorted(r.variants_used)].count("tesseract") == 2
+
+
+def test_tesseract_fallback_runs_all_variants_when_rapidocr_fails_midway(monkeypatch):
+    from medcheck import pipeline as pl
+    from medcheck.ocr import EngineInfo
+
+    seen = []
+
+    def fake(variants, engine):
+        seen.append([v.variant_id for v in variants])
+        return [OCRPass(v.variant_id, 6, (ZX,), (), engine="tesseract", source=v.variant_id) for v in variants], engine
+
+    monkeypatch.setattr(pl, "run_ocr", fake)
+    p = MedCheckPipeline.load(rapid_engine=BrokenRapid({}), tesseract_engine=EngineInfo("tesseract", "tesseract 0"))
+    r = p.check(PHOTO)
+    assert sum(len(v) for v in seen) == 4  # 2 limited variants first, the remaining 2 once RapidOCR had failed
+    assert r.engines == ("tesseract",) and any("RapidOCR engine is unavailable" in n for n in r.notes)

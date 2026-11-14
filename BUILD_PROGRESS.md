@@ -4,6 +4,8 @@ Single source of truth for resuming development. Update at the end of every mile
 Run tests with: `.venv\Scripts\python.exe -m pytest -q`
 
 ## Current state
+**M10 (V2 manual-testing review)** is done: see `docs/V2_REVIEW.md` and D-025. No safety rule changed; held-out photographs still untouched.
+
 **V2 (M9) is implemented**: RapidOCR primary engine with Tesseract as extra evidence/fallback, glue-aware parser, rotation/crop cascade, manual batch entry (D-022..D-024). Real-photograph accuracy is still **not** evaluated (diagnostic runs on 20 development photos only; 7 photos are reserved and untouched).
 
 All milestones M0-M6 are complete and committed. The application starts, accepts uploads, runs local OCR, extracts fields, matches against the dataset, and handles all four outcomes plus system errors. **Real-photograph accuracy has not been evaluated** (D-014 open), and `Expired` is intentionally disabled (D-007 open). See "What remains".
@@ -56,7 +58,12 @@ All milestones M0-M6 are complete and committed. The application starts, accepts
 - **Open items for the owner:** (1) T008 returns `25S3GTA4` from both views and gives `No alert found`, but an embossed dimple may hide a further character; check T008 on the pack. (2) The seven certain references were read by eye by an AI model and need confirming on the physical packs. (3) Remaining `No alert found` results on development photos: T006, T013, T014 (exact), T008 (unverified), T019 (plausible).
 - **Not done (by instruction):** the 7 reserved photographs were not opened or processed; no 60-image evaluation.
 
+**M10 (V2 manual-testing review)** - `docs/V2_REVIEW.md`, scripts in `experiments/v2_review/`. Findings: startup `ImportError` = stale running server (reproduced, not a defect; app now shows a restart message); strict agreement is the only policy that accepted zero wrong batches in replay; dropped-`F` (`MG.JUL.2025`) caused both the missing manufacturing date and the date glued into the batch; erratic times were the engine's default ONNX threading (10.9 s vs 0.5 s per pass, identical text). Changes: bounded ONNX threads, warm-up, Tesseract concurrent (interleaved A/B: 52.8 s -> 38.9 s over 8 photos, identical decisions in 72 runs), date/glue fixes, look-alike conflict explanation, confirmation cleared on edit. Tested and rejected: looser agreement, early-stop rotations, batch-line re-read.
+- Dev run `run_20261115_004829` vs the previous V2 run on the same 20 photos: outcomes and batch results identical (5 No alert found, 3 exact, 0 wrong, 4 abstained on the certain references); dates read 7 -> 8 (manufacturing) and 7 -> 8 (expiry). That run was slower (mean 21 s, max 63 s) because of background load, not the changes (see the interleaved A/B).
+
 ## Test results (last run)
+- **After M10, main venv:** `pytest -q` -> **322 passed** (217 s on a loaded machine).
+- (Older) **V2 before the review, fresh venv**: 294 passed.
 - **V2, fresh venv built only from `requirements.txt` + `requirements-ocr.txt --no-deps`**: `pytest -q` -> **294 passed** (140 s). `pip check` reports only the expected `opencv-python` note for rapidocr-onnxruntime.
 - (Older) **Main venv after M7**: `pytest -q` -> **204 passed** (about 117 s). Earlier fresh-venv run before M7: 194 passed.
 - (Older) **Fresh venv built only from `requirements.txt`** (before M7): `pytest -q` -> **194 passed** (about 34 s).

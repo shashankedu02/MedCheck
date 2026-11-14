@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import os
 from importlib import metadata
 from pathlib import Path
 
@@ -58,14 +59,33 @@ class RapidEngine:
             try:
                 logging.getLogger("RapidOCR").setLevel(logging.ERROR)
                 from rapidocr_onnxruntime import RapidOCR  # imported lazily: optional at import time
+                from rapidocr_onnxruntime import utils as rutils
 
-                self._ocr = RapidOCR()
+                threads = min(config.RAPIDOCR_INTRA_OP_THREADS, os.cpu_count() or 1) if config.RAPIDOCR_INTRA_OP_THREADS > 0 else 0
+                original = rutils.SessionOptions
+
+                def bounded():
+                    opts = original()
+                    if threads:
+                        opts.intra_op_num_threads = threads
+                        opts.inter_op_num_threads = 1
+                    return opts
+
+                rutils.SessionOptions = bounded  # the library builds its sessions in the constructor, then we restore it
+                try:
+                    self._ocr = RapidOCR()
+                finally:
+                    rutils.SessionOptions = original
             except Exception as exc:  # noqa: BLE001 - missing package, missing model, bad runtime
                 raise OCREngineUnavailable("RapidOCR could not be loaded") from exc
         return self._ocr
 
     def check_available(self) -> None:
         self._engine()
+
+    def warm_up(self) -> None:
+        """Load the models and run one blank image so the first real check does not pay start-up cost."""
+        self.run(np.full((96, 320, 3), 255, np.uint8), "warm_up")
 
     def run(self, rgb: np.ndarray, source: str) -> OCRPass:
         """`rgb`: HxWx3 uint8 RGB (or 2-D gray). Returns raw lines in the engine's reading order."""

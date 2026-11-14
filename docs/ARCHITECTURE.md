@@ -5,7 +5,7 @@ Status key: **built+tested** means code exists and automated tests were executed
 ## Pipeline
 ```
 bytes -> image_input -> regions (pack crop) -> OCR cascade:
-         RapidOCR(full frame) + RapidOCR(pack crop) + Tesseract(crop, 2 variants x 2 PSM)
+         RapidOCR(full frame) + RapidOCR(pack crop)   ||   Tesseract(crop, 2 variants x 2 PSM) in a worker thread
          [only if no batch label found: RapidOCR(crop rotated 90/180/270)]
          [if exactly one reading has single-pass support: one confirmation pass at another scale]
       -> extraction (glue-aware label-anchored fields, strict cross-pass agreement, provenance)

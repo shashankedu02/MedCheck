@@ -15,6 +15,7 @@ from .dates import parse_month_year
 from .models import FieldState
 from .normalization import BatchKey, batch_key
 
+_MON = r"(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)"  # real month names only
 _NEXT_LABEL = r"(?:MFG|MFD|M\.?\s?F\.?\s?G|EXP|E\.?\s?X\.?\s?P|MRP|M\.?R\.?P|PRICE|DATE|MANUF|USE\s*BEFORE|BEST\s*BEFORE|RS\b|PACK|NET\b|QTY)"
 _BATCH_LABEL = re.compile(
     r"(?:\bB\s*\.?\s*N[O0]\b|\bBATCH\s*(?:N[O0]\b|NUMBER|#)?|\bLOT\s*(?:N[O0]\b|NUMBER|#)?|\bB\s*[.:]\s*N[O0])\s*\.?\s*[:;#\-]*\s*",
@@ -22,9 +23,17 @@ _BATCH_LABEL = re.compile(
 )
 _NEXT_LABEL_RE = re.compile(r"\b" + _NEXT_LABEL, re.I)
 _EXP_LABEL = re.compile(r"(?:(?<![A-Za-z])EXP(?:IRY|IRES)?\b|\bE\s*\.\s*X\s*\.\s*P\b|\bUSE\s*BEFORE\b|\bBEST\s*BEFORE\b)\s*\.?\s*(?:DATE)?\s*[:;\-]*\s*", re.I)
-_MFG_LABEL = re.compile(r"(?:(?<![A-Za-z])MFG\b|(?<![A-Za-z])MFD\b|\bMANUF(?:ACTURING|ACTURED)?\b(?:\s*DATE)?|\bM\s*\.\s*F\s*\.\s*G\b)\s*\.?\s*(?:DATE)?\s*[:;\-]*\s*(?!\s*BY\b)", re.I)
+# "MG" is accepted as a manufacturing label (OCR dropped the F of MFG) ONLY when a month and a 4-digit year follow it
+# directly with no whitespace ("MG.JUL.2025"); "500 MG JAN 2025" or "500 MG. JUL.2025" is not a date label.
+_MFG_LABEL = re.compile(
+    r"(?:(?<![A-Za-z])MFG(?:\b|(?=D(?:A?TE|T)\b))|(?<![A-Za-z])MFD(?:\b|(?=D(?:A?TE|T)\b))|\bMANUF(?:ACTURING|ACTURED)?\b(?:\s*DATE)?|\bM\s*\.\s*F\s*\.\s*G\b"
+    r"|(?<![A-Za-z])MG(?=[.:]?" + _MON + r"[A-Za-z]{0,6}[.\-/]?\d{4}))"
+    r"\s*\.?\s*(?:DATE)?\s*[:;\-]*\s*(?!\s*BY\b)",
+    re.I,
+)
+# A month name followed by a 2-digit year needs no separator ("JUN25", "MAY 27"); month must be a real month name.
 _DATE_VALUE = re.compile(
-    r"(\d{1,2}\s*[/\-. ]\s*\d{4}|\d{1,2}\s*[/\-.]\s*\d{2}\b|\d{4}\s*[/\-.]\s*\d{1,2}\b|[A-Za-z]{3,9}\.?\s*[/\-. ]?\s*\d{4}|[A-Za-z]{3}\.?\s*[/\-.]\s*\d{2}\b)"
+    r"(\b" + _MON + r"[A-Za-z]{0,6}\.?\s?[/\-.]?\s?\d{2}\b|\d{1,2}\s*[/\-. ]\s*\d{4}|\d{1,2}\s*[/\-.]\s*\d{2}\b|\d{4}\s*[/\-.]\s*\d{1,2}\b|[A-Za-z]{3,9}\.?\s*[/\-. ]?\s*\d{4}|[A-Za-z]{3}\.?\s*[/\-.]\s*\d{2}\b)"
 )
 
 
@@ -45,7 +54,10 @@ def _cut_at_next_label(rest: str) -> str:
 # "5BA1617MFD", "HLAS0019MFG.JUL", "25S3GCA146M.R.P". Searched only after the first
 # characters so a value that merely starts with such letters is not cut to nothing.
 _GLUED_NEXT = re.compile(
-    r"(?:MF[GD]|M\.?\s?F\.?\s?G|EXP|M\.?\s?R\.?\s?P|M\.\s?R\b|PER(?:BLIST|STRIP|\b)|INCL|PRICE|RS\.)",
+    r"(?:MF[GD]|M\.?\s?F\.?\s?G|EXP|M\.?\s?R\.?\s?P|M\.\s?R\b|PER(?:BLIST|STRIP|\b)|INCL|PRICE|RS\."
+    # an MFG label whose F was dropped ("...0019MG.JUL.2025"), or a month + 4-digit year glued to the value
+    r"|MG(?=[.:]?" + _MON + r"[A-Za-z]{0,6}[.\-/]?\d{4})"
+    r"|" + _MON + r"[A-Za-z]{0,6}[\s.\-/]?\d{4})",
     re.I,
 )
 _GLUE_SEARCH_FROM = 3
@@ -145,6 +157,17 @@ class ExtractionResult:
     edge_ignored: tuple[str, ...] = ()  # batch readings ignored because their line touched the image/crop edge
 
 
+def _conflict_reason(keys: list[str]) -> str:
+    """Explain a conflict. If every reading is the same up to look-alike characters (S/5, O/0, I/1/L, B/8) say exactly
+    which characters differ so the user can check those on the pack. Nothing is substituted or chosen."""
+    bks = [batch_key(k) for k in keys]
+    if len({b.confusable_key for b in bks}) == 1 and len({len(b.key) for b in bks}) == 1:
+        diffs = sorted({f"{x} or {y}" for a in bks for b in bks if a.key < b.key for x, y in zip(a.key, b.key) if x != y})
+        return ("the readings differ only by look-alike characters (" + ", ".join(diffs[:4]) +
+                "); check exactly these characters on the pack")
+    return "different batch readings across passes or labels"
+
+
 def reconcile_batch(per_pass: list[PassFields], min_agree: int | None = None) -> BatchField:
     min_agree = config.MIN_AGREEING_OCR_PASSES if min_agree is None else min_agree
     support: Counter[str] = Counter()
@@ -164,7 +187,7 @@ def reconcile_batch(per_pass: list[PassFields], min_agree: int | None = None) ->
     readings = tuple(sorted({r for c in raws.values() for r in c}))
     srcs = tuple(sources)
     if len(support) > 1:
-        return BatchField(FieldState.AMBIGUOUS, reason="different batch readings across passes or labels", readings=readings, reading_sources=srcs)
+        return BatchField(FieldState.AMBIGUOUS, reason=_conflict_reason(list(support)), readings=readings, reading_sources=srcs)
     (key, n), = support.items()
     if n < min_agree:
         return BatchField(FieldState.AMBIGUOUS, reason=f"batch seen in only {n} OCR pass(es); {min_agree} required", readings=readings, reading_sources=srcs)

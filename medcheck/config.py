@@ -84,6 +84,15 @@ RAPIDOCR_MODEL_SHA256 = {
     "ch_ppocr_mobile_v2.0_cls_infer.onnx": "e47acedf663230f8863ff1ab0e64dd2d82b838fceb5957146dab185a89d6215c",
 }
 
+# ONNX Runtime intra-op threads for RapidOCR. The engine's default thread pool measured up to 20x slower
+# (10.9 s vs 0.5 s for the same pass, identical text) on a 16-thread hybrid CPU under ordinary desktop load;
+# 4 threads were fastest in the controlled test (experiments/v2_review/exp_threads.py). 0 = engine default.
+RAPIDOCR_INTRA_OP_THREADS = 4
+
+# Run Tesseract in a worker thread while RapidOCR works (same passes, same results). Switchable because the benefit
+# was measured, not assumed (docs/OCR_ENGINES.md).
+TESSERACT_CONCURRENT = True
+
 # --- Manual batch entry ----------------------------------------------------------
 MANUAL_BATCH_MAX_CHARS = 30
 
