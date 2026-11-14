@@ -1,0 +1,16 @@
+# Environments and caches
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+# Never commit user data
+uploads/
+tmp/
+*.log
+eval_images/
+eval_private/
+.env
+.streamlit/secrets.toml
