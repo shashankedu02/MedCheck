@@ -7,7 +7,9 @@ Batch number is the primary identity evidence. Product name, strength, form and 
 
 ## Comparison keys (D-017)
 `batch_key(raw)`: Unicode NFKC, uppercase, keep only `A-Z0-9`. Spaces, hyphens, slashes and trailing commas are treated as formatting. Leading zeros and every letter/digit survive. A second key, `confusable_key`, additionally folds O->0, I->1, L->1, S->5, B->8 and is used **only** to detect ambiguity, never to confirm.
-Validated on the dataset: no two rows share an exact key; exactly one confusable pair exists (serials 38 and 157).
+Validated on the dataset: no two rows share an exact key; exactly one confusable pair exists (serials 38 and 157), with or without the L fold.
+
+**What the fold can and cannot do.** `confusable_key` is read in exactly two places in `matching.py` and once for explanation text: (1) when the exact key matches one row, a *different* row with the same folded key turns the would-be alert into `COLLISION`; (2) when no exact row exists, rows with the same folded key are retrieved as `FUZZY_ONLY`. Both only add abstention. An alert needs the exact `key`, in which L and 1 (and I, O, S, B and their digits) stay different, so the fold never produces an alert, a match or a clean negative, and raw strings are never altered. The letter L is an extension of the four owner-confirmed pairs (D-005); it exists because serial 121 is published as `0l25038` with an undeterminable intended character. Serial 121 is pinned by `tests/test_matching.py`: `0l25038` alerts, while `0I25038` and `0125038` give `FUZZY_ONLY`. Measured with the real index during the post-M16 documentation baseline (not separately pinned by a test): `TG261185` (serial 4) alerts, while `TG26l185`, `TG26L185` and `TGL61185` give `FUZZY_ONLY`.
 
 ## Match outcomes (`MatchOutcome`)
 Evaluated in this order for a cleanly-read batch:

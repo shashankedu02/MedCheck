@@ -1,9 +1,21 @@
-# Evaluation Protocol (D-014 OPEN: not yet performed)
+# Evaluation Protocol (D-014 OPEN: pending evaluation planning; nothing has been performed)
 
 **No accuracy, sensitivity, specificity or time-saving claim may be made about MedCheck until this protocol has been run and the raw per-image results are kept.** The automated test suite proves behaviour on synthetic labels and logic cases; it is not an evaluation of real-world OCR.
 
-## Evidence categories (proposed revision of D-014; owner approval pending)
-The original target (60 photographs, 30 of them NSQ-listed) cannot be met: listed batches are withdrawn and must not be obtained. Evidence is therefore kept in separate categories, each reported on its own and **never merged into one percentage** (rationale and test matrix: `docs/EVALUATION_STRATEGY.md`):
+## Two proposals under D-014 (neither approved, neither executed)
+D-014 stays **OPEN, pending further evaluation planning**. Nothing below has been run and the owner has accepted neither proposal.
+
+| | Proposal 1: the original 60-image evaluation | Proposal 2: evidence categories (proposed revision) |
+|---|---|---|
+| Origin | The project abstract and the original documentation (baseline commit `78cc8d6`; `docs/archive/features/10_EVALUATION.md`) | Written in M13 after the assessment in `docs/EVALUATION_STRATEGY.md` (an engineering assessment, not an owner decision) |
+| Design | 60 photographs, 30 alert-listed and 30 non-alert; ground truth fixed independently beforehand; frozen split and software version; blind run | Separate evidence categories C1-C5 (below), each reported alone and never merged into one percentage |
+| Depends on | Whether 30 photographs of NSQ-listed packs can be obtained and photographed. The assessment judged this probably not possible (withdrawn batches); that has not been confirmed with the owner | Whether the owner accepts the categories, and the sample, labelling (two readers, physical pack) and consent plan |
+| Status | Proposed; not approved; not run | Proposed; owner approval pending; not run |
+
+The metric and run tooling (`medcheck/evaluation.py`, `medcheck/real_eval.py`, the scripts) supports either proposal; tooling is not evidence. Diagnostic runs on 20 development photos and one run on 7 reserved photos (now spent) exist and belong to neither proposal.
+
+### Proposal 2 in detail: evidence categories
+Evidence is kept in separate categories, each reported on its own and **never merged into one percentage** (rationale and test matrix: `docs/EVALUATION_STRATEGY.md`):
 
 | Category | Can show | Cannot show | Rate allowed |
 |---|---|---|---|
@@ -38,7 +50,7 @@ Photographs placed in `evaluation/incoming_photos/` (git-ignored, read-only to t
 ```powershell
 .\.venv\Scripts\python.exe scripts\run_evaluation.py
 ```
-Code: `medcheck/real_eval.py` (no matching logic of its own), `scripts/run_evaluation.py`, `scripts/set_ground_truth.py`. It is separate from the app and from the 60-image metric script above.
+Code: `medcheck/real_eval.py` (no matching logic of its own), `scripts/run_evaluation.py`, `scripts/set_ground_truth.py`. It is separate from the app and from the labelled-set metric script (`scripts/evaluate.py`) above.
 - **Test IDs** come from filenames (`7.jpeg` -> `T007`). Duplicate content is flagged (`duplicate_of`); a second file with the same ID, unsupported types and corrupt files get a recorded non-result and never stop the run. The run verifies by SHA-256 that originals are unchanged.
 - **Outputs** (git-ignored: they hold OCR text): every run writes `evaluation/results/runs/<run_id>/` (`evaluation_results.csv`, `evaluation_report.md`, `run_info.json` with git commit, dataset hash and period, Tesseract version). Run IDs never collide, so history is never overwritten. `evaluation/results/evaluation_results.csv` and `evaluation_report.md` are copies of the latest run.
 - **Three separate fields**: actual outcome (what MedCheck said), expected outcome (ground truth), evaluation status (`Correct`, `Incorrect`, `Pending`, `Inconclusive`). Everything is `Pending` until a label exists; a system error or rejected image is `Inconclusive`; an abstention where a decisive answer was expected is `Incorrect` (a miss).

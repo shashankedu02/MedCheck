@@ -26,6 +26,9 @@ MedCheck: photo-based medicine batch verification using local OCR and conservati
 | Independent review process (Antigravity) | `docs/REVIEW_PROCESS.md` |
 | OCR engines: install, licences, offline, model hashes | `docs/OCR_ENGINES.md` |
 | OCR failure investigation and V2 design evidence | `docs/OCR_INVESTIGATION.md` |
+| Interface: result screen, clickable readings, 3D story | `docs/UI_UX_GUIDELINES.md` |
+| Run, install and evaluation commands | `docs/WORKFLOWS.md` |
+| V2 manual-testing review (timings, root causes) | `docs/V2_REVIEW.md` |
 | Run, demo, limitations | `README.md` |
 `docs/archive/` is history only; do not follow it over the files above.
 
@@ -33,7 +36,7 @@ MedCheck: photo-based medicine batch verification using local OCR and conservati
 - Four statuses only: `Alert found`, `No alert found`, `Expired`, `Unable to verify`. System failures (dataset, OCR engine, internal) are a **separate** result type, never a status and never "No alert found".
 - Batch number is primary evidence. Product-name similarity alone never alerts. Fuzzy/near-batch matches only retrieve candidates and force abstention; they never confirm.
 - Corroborating identity evidence is required for an alert (`docs/MATCHING.md`). Ambiguous, conflicting, collided or weak evidence -> `Unable to verify`.
-- Never silently substitute O/0, I/1, S/5, B/8. Preserve raw OCR/dataset strings; compare via separate normalized copies. Serials 38/157 are the required collision test.
+- Never silently substitute O/0, I/1, S/5, B/8 (the ambiguity-detection fold also treats the letter L as 1; it only adds abstention and never confirms, see `docs/MATCHING.md`). Preserve raw OCR/dataset strings; compare via separate normalized copies. Serials 38/157 are the required collision test.
 - Do not emit `Expired` until the owner approves the month-only expiry policy (D-007, `config.EXPIRY_POLICY_APPROVED`).
 - Never claim safe, genuine, authentic or defect-free; always show the dataset period; no medical advice.
 - No image persistence, no logging of image bytes, filenames, OCR text or typed batch numbers, no network calls, no telemetry, no cloud OCR. Streamlit stays bound to localhost.

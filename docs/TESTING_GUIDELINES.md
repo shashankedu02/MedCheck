@@ -1,6 +1,6 @@
 # Testing Guidelines (authoritative)
 
-Run everything: `.\.venv\Scripts\python.exe -m pytest -q` (about a minute; the Streamlit UI tests are the slow part). Report only results of runs you actually performed.
+Run everything: `.\.venv\Scripts\python.exe -m pytest -q` (about 90-110 seconds on the development PC; the Streamlit UI and real-OCR tests are the slow part). Last recorded run: 443 passed (`BUILD_PROGRESS.md`). Report only results of runs you actually performed.
 
 ## What each test file covers
 | File | Covers |
@@ -24,10 +24,17 @@ Run everything: `.\.venv\Scripts\python.exe -m pytest -q` (about a minute; the S
 | (V2 review additions) | Look-alike conflict explanations, dropped-F date label and strength-is-not-a-date guards, glued-month cut, `JUN25`/`MfgDt:` layouts (`test_v2_parser_and_misreads.py`); bounded ONNX threads applied and restored, identical text, warm-up never raises, Tesseract concurrent with identical evidence and full-variant fallback (`test_v2_pipeline.py`); stale-module restart message, confirmation cleared on edit (`test_app.py`) |
 | `tests/test_look_alike_consistent_misread.py`, D-026 additions in `test_decision.py`, `test_app.py`, `test_pipeline.py`, `test_v2_pipeline.py`, `test_demo.py`, `test_real_eval.py` | The reported case (both engines read `HLA50019`): matching abstains when the true batch is listed, and an OCR-read clean negative needs confirmation otherwise; correction goes through the same rules; every batch source (OCR, corrected, typed) needs confirmation for `No alert found` and `Expired`; `Alert found` is never delayed; confirmation changes nothing else; exhaustive grid never yields a clean negative unconfirmed; UI wording ("agreed by the OCR passes", what confirmation does not mean); headline asserted strictly (not the page disclaimer); evaluation scores a withheld negative as Inconclusive |
 | `tests/test_real_eval.py` | Evaluation records, held-out photographs never opened by default, batch scoring against the independent reference, run history, ground-truth handling |
+| `tests/test_ui_scene.py`, `tests/test_ui_scene_story.py` | 3D interface, `AppTest` runs plus static source scans of the JavaScript (the scans look for the presence of cleanup, resize, fallback and frame-cap code, camera-path and scene-order consistency, no network or storage calls): the browser payload carries only a phase and a status name (never photo, text, batch or record), phases and statuses are closed sets, text colours meet WCAG AA, assets contain no remote URL, Three.js hash pinned and stored byte-for-byte, static serving configured, story wording rules (no safe/genuine/authentic claims, neutral no-alert) and scene order. They do **not** execute the JavaScript |
+| `tests/test_ui_result.py` | Result view (`medcheck_ui/result.py`): each outcome has its own banner with the engine's headline, the clean negative is never green and has no tick, dynamic values are escaped, the full limitation and every caveat are visible, no confidence figure or claim word, cards and "Confirmed by you" chip placement (on the OCR batch card, or on the user's own value), colours meet WCAG AA, the basic native rendering takes over if the view cannot load |
+| `tests/test_batch_suggestions.py` | Clickable OCR batch readings: every reading offered, nothing preselected, exact string preserved (case, look-alikes, comma), a click clears the confirmation and never confirms or submits, selected state only while the box holds exactly that string, editing clears the tick, checking still needs the tick, typing still works, no buttons without readings or on non-"Unable to verify" results |
+| D-031/D-032 additions in `test_decision.py`, `test_app.py`, `test_alert_check.py` | After a corrected or typed batch the `No alert found` wording says "the batch you entered"; the result screen is asserted through the rendered HTML (banner status and headline, matched record rows) |
 
 ## Honest scope
 - OCR tests use **synthetic rendered text**. They prove the plumbing and the safety logic, not accuracy on photographs of curved foil, glare or blur. Real-world accuracy is unknown until `docs/EVALUATION.md` is executed.
 - Real-photo categories still untested: blur, glare, rotation beyond EXIF, perspective, curved blister, tiny print, multi-pack scenes.
+- **Line and branch coverage have not been measured.** No coverage tool is installed and the baseline did not add one. The file-by-file map in `docs/ARCHITECTURE.md` section 9 is the only coverage evidence; treat gaps as unknown, not as covered.
+- **No automated browser test exists** (no Playwright or Selenium). The 3D stage's JavaScript, the result screen's CSS layout and the clickable-reading buttons' look and focus ring were checked by headless-Edge runs and by the owner in a normal browser, not by the suite. The physical demo-laptop rehearsal is pending.
+- No concurrency, multi-session or long-running-process test exists (`docs/ARCHITECTURE.md` OA-1, OA-2).
 - Tests that need Tesseract or a TrueType font skip (not pass) when those are missing.
 
 ## Rules for new tests

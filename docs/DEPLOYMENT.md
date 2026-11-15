@@ -11,6 +11,9 @@ cd D:\MedCheck
 streamlit run app.py
 ```
 
+## What a deployment would have to carry (as built)
+The app needs the pinned Python packages (`requirements.txt`), the OCR packages (`requirements-ocr.txt`, installed with `--no-deps`, about 72 MB, models inside the wheel), the native Tesseract executable (optional but recommended as extra evidence and fallback), the `static/` folder (vendored Three.js, served by `server.enableStaticServing`) and the `data/` folder (immutable official extraction, canonical dataset and manifest; the loader fails closed if they do not match their pinned hashes). The 3D interface needs a browser with WebGL; without it, with reduced-motion, or with `MEDCHECK_PLAIN_UI=1`, a still or plain interface is used. Per-check time depends on the machine (a few seconds up to about 20 s on the development PC; measurements in `docs/V2_REVIEW.md`, not a guarantee).
+
 ## Hosted options
 Streamlit Community Cloud may be a practical later option for a Streamlit application; Hugging Face Spaces is another possible route. Reassess current platform capabilities, resource limits, Tesseract installation and policies at deployment time rather than relying on this planning note as a current compatibility guarantee.
 

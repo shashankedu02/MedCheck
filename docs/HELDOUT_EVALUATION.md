@@ -68,7 +68,7 @@ The populations differ: the development set contains photos with no batch on the
 - **Not independent of development in two cases:** T024 is a second photograph of the pack behind dev photo T003 (the batch `HLAS0019` drove several fixes), and T027 shares manufacturer, print style and batch prefix with dev photo T026. T015 and T018 are two strengths of the same product family. The set was reserved by taking every third photo, not at random.
 - **The reference is not ground truth:** an AI model's visual reading of re-encoded photos, not a check against the physical packs or the official records. The owner should confirm the references (and T009, T012, T018 especially).
 - Seven photos from one phone, one table and one operator say nothing about other phones, lighting, packs or users.
-- The reserved photos are now **used**: they must not guide further tuning. A fresh, labelled set is needed for any future held-out claim. `docs/EVALUATION.md` still requires the 60-image protocol (D-014 remains open).
+- The reserved photos are now **used**: they must not guide further tuning. A fresh, labelled set is needed for any future held-out claim. D-014 remains open: `docs/EVALUATION.md` records the original 60-image proposal and a proposed evidence-category revision, neither approved nor executed (wording corrected in the post-M16 documentation baseline).
 
 ## Reproducing the records
 `scripts/run_heldout_evaluation.py` writes a new run folder each time and never touches earlier runs, but running it again would look at the reserved photos a second time; do not use it for tuning.

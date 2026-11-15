@@ -13,6 +13,11 @@
 - `server.enableStaticServing = true` serves only `./static/` (the vendored Three.js) from localhost. No CDN, no remote font, no remote asset: a test scans the assets for remote URLs. The Three.js file is pinned by SHA-256 (`static/vendor/three/VENDOR.json`) and stored byte-for-byte (`.gitattributes`).
 - Nothing user-supplied is rendered as HTML by the presentation layer; the story text is static. A failure of the layer must never break a check: the app falls back to the plain interface (`MEDCHECK_PLAIN_UI=1` forces it).
 
+## Result screen and batch suggestions (frontend)
+- `medcheck_ui/result.py` builds the result HTML from an already-computed result; every dynamic value (batch strings, OCR readings, record fields, messages) is HTML-escaped (`tests/test_ui_result.py`). The recognised photo text is never rendered as markup: it appears only as plain text in an expander (`st.text`).
+- The clickable OCR readings are native buttons whose callback only writes the exact reading into the batch box and clears the confirmation; it neither confirms nor submits (`tests/test_batch_suggestions.py`). The value then goes through the same validation and matching as typed text.
+- Known exposure: the result view injects a stylesheet and relies on Streamlit's generated CSS class names; this is presentation only and carries no user data.
+
 ## Deployment boundary
 A local app processes images on the user's machine. A hosted Streamlit app receives and processes uploaded images on the hosting server. Never claim hosted processing is on-device. Before deployment, document provider processing, retention, access controls and deletion behavior and obtain approval.
 

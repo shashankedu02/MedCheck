@@ -12,6 +12,12 @@ tesseract --version
 .\.venv\Scripts\python.exe -c "import cv2, PIL, rapidfuzz, streamlit; print('imports ok')"
 ```
 
+The primary OCR engine and its model integrity can be checked with:
+```powershell
+.\.venv\Scripts\python.exe -c "from medcheck.ocr_rapid import RapidEngine; e=RapidEngine(); e.check_available(); print(e.version)"
+```
+If it raises `OCREngineUnavailable`, the app falls back to Tesseract alone and shows a note (see `docs/OCR_ENGINES.md`). If the page shows "updated while this page was running", stop and restart the server. If the 3D scene misbehaves, start with `MEDCHECK_PLAIN_UI=1` to separate a presentation problem from a pipeline problem (the plain interface uses the same pipeline).
+
 If Tesseract is not found, verify installation and PATH or configure the executable path. MedCheck calls the `tesseract` executable directly (no pytesseract); set `MEDCHECK_TESSERACT_CMD` to its full path if PATH is not configured.
 
 ## OCR troubleshooting
