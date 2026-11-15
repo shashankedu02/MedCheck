@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-15 - result-screen redesign and clickable batch readings (M16, branch `ui-redesign`, D-031, D-032)
+- Result screen (D-031): `medcheck_ui/result.py` replaces the plain status boxes and text lines with a status banner, reading cards, a batch-against-listed-batch comparison and record grid for alerts, and a styled batch form; the engine's wording is shown unchanged. Spacing bug fixed (a blanket CSS reset outranked the component rules; now `:where()`). A neutral "Confirmed by you" chip marks a batch the user confirmed against the pack.
+- One engine wording fix (`medcheck/decision.py`, one line): after a user-corrected or typed batch, the `No alert found` explanation says "the batch you entered", not "read from the photo". Regression test added.
+- Clickable batch readings (D-032): each reading is a button that fills the batch box with the exact string; it clears the confirmation tick, never confirms, never submits, never preselects. They replace the former static chips. Known limitation: in the basic fallback rendering the readings are also listed as a caption (shown twice).
+- Tests: 443 passed (was 421 before D1/D2 and the suggestions; +7 for D1/D2, +15 in `tests/test_batch_suggestions.py`). No OCR, extraction, matching, classification, dataset, threshold or expiry change.
+- Documentation: `docs/UI_UX_GUIDELINES.md` (result presentation, clickable readings), D-031 and D-032 added to `docs/DECISIONS.md` (D-031 had been cited in the guidelines without a decision entry).
+
 ## 2026-11-15 - cinematic five-scene story (M15, branch `ui-redesign`, D-030)
 - One persistent Three.js scene driven by a master clock from the measured scroll position: capsule, water glass with effervescent tablet, evidence particles and two readers, medicine carton with a real optical magnifier (render-to-texture lens with distortion), neutral comparison panels, then the real tool. Catmull-Rom camera path, inertia and a speed limit, scene dots and a skip link.
 - Scanning stays tied to the real OCR phase (camera returns to the magnifier, indeterminate reading panel, brackets on the batch line). Frontend only; plain UI, no-WebGL, reduced-motion and lite tiers kept; no new dependency; no backend change.

@@ -57,10 +57,41 @@ def run_with(result):
     return at
 
 
+def page_html(at):
+    """Everything the page rendered through st.html (the redesigned result view), as one string."""
+    return "\n".join(e.value for e in at.get("html"))
+
+
+def visible_html_text(at):
+    """The page's st.html content as text: stylesheets dropped, tags replaced by spaces, entities decoded."""
+    import html as _html
+    h = re.sub(r"<style>.*?</style>", " ", page_html(at), flags=re.S)
+    return _html.unescape(re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", h)))
+
+
+def status_of(at):
+    """Presentation bucket of the result banner (alert / no_alert / unable / expired / system / rejected), or None."""
+    m = re.search(r'class="mcr-hero" data-status="(\w+)"', page_html(at))
+    return m.group(1) if m else None
+
+
+def headline_of(at):
+    import html as _html
+    m = re.search(r'<h2 class="mcr-headline">(.*?)</h2>', page_html(at), flags=re.S)
+    return _html.unescape(m.group(1)) if m else None
+
+
+def record_value(at, label):
+    import html as _html
+    m = re.search(r'<dt>' + re.escape(label) + r'</dt><dd>(.*?)</dd>', page_html(at), flags=re.S)
+    return _html.unescape(m.group(1)) if m else None
+
+
 def all_text(at):
     parts = []
     for coll in (at.title, at.markdown, at.caption, at.text, at.info, at.warning, at.error, at.subheader, at.header, at.success):
         parts += [e.value for e in coll]
+    parts.append(visible_html_text(at))
     return "\n".join(parts)
 
 
@@ -76,14 +107,15 @@ def test_default_page_states_scope_and_period():
 
 def test_alert_found_rendering_shows_matched_record():
     at = run_with(result_for(MatchOutcome.CONFIRMED, serial=4, record=RECORD))
-    assert at.error and "Alert found" in at.error[0].value
+    assert status_of(at) == "alert" and headline_of(at) == "Alert found" and not at.error
     text = all_text(at)
-    assert "TG261185" in text and "Serial: 4" in text and "NSQ result:" in text and "AUG-2026" in text
+    assert "TG261185" in text and record_value(at, "Serial") == "4" and record_value(at, "NSQ result") and "AUG-2026" in text
+    assert "Listed batch" in text and "Batch read from the photo" in text
 
 
 def test_no_alert_is_neutral_not_green_and_has_disclaimer():
     at = run_with(result_for(MatchOutcome.NO_MATCH))
-    assert any(i.value.startswith("**No alert found**") for i in at.info)  # the HEADLINE, not the page disclaimer
+    assert status_of(at) == "no_alert" and headline_of(at) == "No alert found"  # the HEADLINE, not the page disclaimer
     assert not at.success and not at.error
     text = all_text(at)
     assert "does not mean the medicine is safe, genuine or free of quality problems" in text and "AUG-2026" in text
@@ -92,27 +124,27 @@ def test_no_alert_is_neutral_not_green_and_has_disclaimer():
 @pytest.mark.parametrize("outcome", [MatchOutcome.COLLISION, MatchOutcome.UNCORROBORATED, MatchOutcome.CONFLICT, MatchOutcome.FUZZY_ONLY])
 def test_unable_to_verify_explains_and_suggests_next_step(outcome):
     at = run_with(result_for(outcome, serial=None))
-    assert at.warning and "Unable to verify" in at.warning[0].value
+    assert status_of(at) == "unable" and headline_of(at) == "Unable to verify"
     assert "pharmacist" in all_text(at)
 
 
 def test_unreadable_batch_shows_readings_and_unable():
     at = run_with(result_for(None, batch_state=FieldState.AMBIGUOUS))
-    assert "Unable to verify" in at.warning[0].value
-    assert "AB123 | AB124" in all_text(at)
+    assert status_of(at) == "unable"
+    assert {b.label for b in at.button if b.key and b.key.startswith("mc_sugg_")} == {"AB123", "AB124"}  # both readings offered as buttons
 
 
 def test_system_error_is_distinct_and_never_a_status():
     for failure in SystemFailure:
         at = run_with(ScanResult(decision=system_error_decision(failure)))
-        assert at.error and "System error" in at.error[0].value
-        assert "not a 'No alert found' result" in at.error[0].value
-        assert not any("No alert found" in w.value for w in at.warning) and not at.info[1:]
+        assert status_of(at) == "system" and "System error" in headline_of(at)
+        assert "not a 'No alert found' result" in visible_html_text(at)
+        assert headline_of(at) != "No alert found" and not at.info[1:]
 
 
 def test_rejected_upload_message_is_shown():
     at = run_with(ScanResult(rejection=ImageRejected("not_an_image", "The file could not be read as an image. It may be corrupt.")))
-    assert at.error and "could not be used" in at.error[0].value
+    assert status_of(at) == "rejected" and "could not be used" in visible_html_text(at)
 
 
 @pytest.mark.parametrize("make", [
@@ -124,8 +156,8 @@ def test_rejected_upload_message_is_shown():
 ])
 def test_no_forbidden_claims_anywhere_on_page(make):
     text = all_text(run_with(make()))
-    for ok in ALLOWED_NEGATIONS:
-        text = text.replace(ok, "")
+    for ok in ALLOWED_NEGATIONS:  # the same permitted negations, also when they start a sentence
+        text = text.replace(ok, "").replace(ok.capitalize(), "")
     assert not BANNED.search(text), BANNED.search(text).group(0)
 
 
@@ -155,8 +187,8 @@ def test_upload_flow_alert_found_shows_matched_record():
     from tests.helpers import encode, render_label
     blob = encode(render_label(["Linzotal 600", "Linezolid Tablets IP 600 mg", "B.No.: TG261185    Mfg: 05/2026", "Exp: 04/2028"]), "PNG")
     at = _upload_and_check(blob)
-    assert at.error and "Alert found" in at.error[0].value
-    assert "Serial: 4" in all_text(at)
+    assert status_of(at) == "alert" and headline_of(at) == "Alert found"
+    assert record_value(at, "Serial") == "4"
 
 
 def test_upload_flow_no_alert_is_neutral():
@@ -164,26 +196,26 @@ def test_upload_flow_no_alert_is_neutral():
     blob = encode(render_label(["Paracetamol Tablets IP 500 mg", "B.No.: ZX99001Q    Mfg: 01/2026", "Exp: 12/2028"]), "PNG")
     at = _upload_and_check(blob)
     # D-026: first the app asks for the pack comparison; no clean negative and no neutral "No alert found" box yet
-    assert not any(i.value.startswith("**No alert found**") for i in at.info)
-    assert any(w.value.startswith("**Unable to verify**") and "compare this number with the one printed on the pack" in w.value for w in at.warning)
+    assert status_of(at) == "unable" and headline_of(at) != "No alert found"
+    assert "compare this number with the one printed on the pack" in visible_html_text(at)
     assert any("Next step" in i.value for i in at.info) and at.text_input(key="manual_text").value == "ZX99001Q"
     at.checkbox(key="manual_confirmed").check().run()
     _button(at, "Check this batch number").click().run()
-    assert any(i.value.startswith("**No alert found**") for i in at.info) and not at.success
+    assert status_of(at) == "no_alert" and not at.success
     assert at.session_state["result"].decision.batch_confirmed and at.session_state["result"].manual.source.value == "ocr"
     assert "confirmed by you against the pack" in all_text(at)
 
 
 def test_upload_flow_corrupt_file_shows_friendly_error():
     at = _upload_and_check(b"definitely not an image", "bad.png")
-    assert at.error and "could not be used" in at.error[0].value
+    assert status_of(at) == "rejected" and "could not be used" in visible_html_text(at)
 
 
 def test_camera_flow_uses_same_pipeline():
     from tests.helpers import encode, render_label
     blob = encode(render_label(["Paracetamol Tablets IP 500 mg", "Keep cool", "Exp: 12/2028"]), "JPEG", quality=95)
     at = _upload_and_check(blob, camera=True)
-    assert at.warning and "Unable to verify" in at.warning[0].value
+    assert status_of(at) == "unable" and headline_of(at) == "Unable to verify"
 
 
 def test_streamlit_config_is_local_and_telemetry_free():
@@ -270,8 +302,7 @@ def _unconfirmed_ocr_negative():
 
 def test_unconfirmed_ocr_negative_is_unable_to_verify_with_clear_instructions():
     at = run_with(_unconfirmed_ocr_negative())
-    assert any(w.value.startswith("**Unable to verify**") for w in at.warning)
-    assert not any(i.value.startswith("**No alert found**") for i in at.info)
+    assert status_of(at) == "unable" and headline_of(at) == "Unable to verify"
     text = all_text(at)
     assert "compare this number with the one printed on the pack" in text
     assert "Confirming means you checked the printed batch number; it does not show the medicine is genuine or safe" in text
@@ -293,4 +324,4 @@ def test_pressing_the_button_without_ticking_keeps_unable_to_verify():
 
 def test_ocr_alert_is_shown_immediately_without_any_confirmation():
     at = run_with(result_for(MatchOutcome.CONFIRMED, serial=4, record=RECORD))
-    assert at.error and "Alert found" in at.error[0].value and not at.checkbox[0].value  # nothing was ticked
+    assert status_of(at) == "alert" and not at.checkbox[0].value  # nothing was ticked

@@ -4,6 +4,14 @@ Single source of truth for resuming development. Update at the end of every mile
 Run tests with: `.venv\Scripts\python.exe -m pytest -q`
 
 ## Current state
+**M16 (result-screen redesign and clickable batch readings, branch `ui-redesign`, NOT merged to master)**: D-031 and D-032. `medcheck_ui/result.py` (new), `app.py`, tests `test_ui_result.py` and `test_batch_suggestions.py` (new), updates to `test_app.py`, `test_alert_check.py`, `test_decision.py`. Frontend only apart from one approved engine wording line (`medcheck/decision.py`: after a user-corrected or typed batch, `No alert found` says "the batch you entered", not "read from the photo"). No OCR, extraction, matching, classification, dataset, threshold or expiry change (`git diff` on `medcheck/` is that single line).
+- **Validation done by me:** full suite `pytest -q` -> **443 passed** (99 s). The four result states, the manual correction workflow (tick required, edit clears tick, corrected value labelled and shown apart from the OCR value, invalid input, markup escaping) and the clickable readings (exact string, no preselection, click never confirms or submits) were driven through Streamlit's `AppTest` against the real `app.py`, with real uploads of the demo images where an image gives the state; new tests were checked to fail when the behaviour is deliberately broken (D1 wording; suggestion callback not clearing the tick; callback upper-casing the reading). Layout of the alert and unable screens was seen in a headless-Edge render of the result HTML (not the running app).
+- **Validation done by the owner in a normal browser (owner-reported, not re-run by me):** the result-screen visual direction in the running app, the No alert found screen, and a sanity check of the clickable readings.
+- **Not verified:** the physical BTS laptop rehearsal (pending, merge gate); no automated browser test exists (Playwright/Selenium are not installed), so CSS and layout are only checked by the owner's eyes.
+- **Known limitation (accepted):** in the basic fallback rendering (only if `medcheck_ui.result` fails to import) the readings are shown twice (caption and buttons).
+- **Docs:** D-031 (cited in `docs/UI_UX_GUIDELINES.md` without a decision entry) and D-032 added to `docs/DECISIONS.md`; guidelines and changelog updated.
+- **Next phase:** comprehensive architecture validation and test-coverage assessment. Do not merge `ui-redesign` into master before the BTS laptop rehearsal.
+
 **M15 (cinematic five-scene story, branch `ui-redesign`, NOT merged to master)**: `medcheck_ui/assets/stages.js` + `scene.js`, `theme.py`, D-030. Verified in headless Edge with real wheel scrolling (clock monotonic forward and backward, fast jumps are speed-limited flights), real upload and check (scan phase, verdict), resize/portrait, WebGL disabled, reduced motion, lite tier, no external requests, no console errors, ~29 fps. Needs the owner's visual approval in a normal browser window before any merge. Fallback cut-off 18:00, 2026-11-16.
 
 **M14b (visual refinement, same branch; superseded by M15's scenes)**: after the owner's review of M14 the visuals were substantially reworked (see `docs/CHANGELOG.md`): realistic strip materials and lighting, cinematic scroll path, editorial story, collapsed sidebar, composed hero, scan sequence tied to the real OCR phase. Frontend only; same architecture, fallbacks and plain UI. Verified in headless Edge: 3D at ~29 fps, phases follow the real check, WebGL-disabled fallback, reduced motion (still frames), no external requests, no console errors. Still needs the owner's look in a normal browser window before any merge.
@@ -89,6 +97,7 @@ All milestones M0-M6 are complete and committed. The application starts, accepts
 - Tests: `tests/test_alert_check.py` (new), `tests/test_evaluation.py`, `tests/test_demo.py` extended.
 
 ## Test results (last run)
+- **After M16, main venv:** `pytest -q` -> **443 passed** (107 s, run after the documentation edits, immediately before the commit).
 - **After M13, main venv:** `pytest -q` -> **359 passed** (124 s). Fixture check `scripts/run_fixture_check.py`: 7 of 7 (synthetic). Live app: `/_stcore/health` = ok, listening on 127.0.0.1 only, page 200.
 - (Older) **After M12 (run after the reserved-photo evaluation), main venv:** `pytest -q` -> **343 passed** (77 s).
 - (Older) After M11: 343 passed (70 s).

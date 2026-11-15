@@ -112,6 +112,9 @@ def test_ui_shows_the_check_and_the_side_by_side_batch(ds, index):
     at.session_state["result_digest"] = None
     at.run()
     assert not at.exception
-    assert at.error and at.error[0].value.startswith("**Alert found**")
-    assert any(w.value.startswith("**Check before acting:**") and "TG261185" in w.value for w in at.warning)
-    assert any("Compare: batch read from the photo = TG261185" in t.value and "listed batch = TG261185" in t.value for t in at.text)
+    html = "\n".join(e.value for e in at.get("html"))
+    assert 'data-status="alert"' in html and '<h2 class="mcr-headline">Alert found</h2>' in html
+    callout = re.search(r'<aside class="mcr-callout"[^>]*><p class="mcr-callout-title">Check before acting</p><p>(.*?)</p></aside>', html, flags=re.S)
+    assert callout and "TG261185" in callout.group(1) and "manufacturer" in callout.group(1)
+    assert re.search(r'Batch read from the photo</p><p class="mcr-val mcr-mono">TG261185</p>', html)  # side by side with the listed batch
+    assert re.search(r'Listed batch</p><p class="mcr-val mcr-mono">TG261185</p>', html)
