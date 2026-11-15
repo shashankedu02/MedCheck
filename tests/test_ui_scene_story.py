@@ -101,8 +101,11 @@ def test_no_check_marks_shields_or_success_claims_in_the_visuals():
 def test_scanning_is_tied_to_the_real_phase_not_a_timer():
     assert "scanning ? SCAN_T" in CORE and "phase === 'scanning'" in CORE
     # the reading panel is an INDETERMINATE bar (a looping shimmer): no percentage, no counter, no step text
-    hud = re.search(r"hud\.innerHTML = '(.*?)';", CORE).group(1)
-    assert "Reading the photo on this computer" in hud and not re.search(r"\d|%", hud)
+    for name in ("HUD_LOCAL", "HUD_HOSTED"):
+        hud = re.search(name + r" = '(.*?)';", CORE).group(1)
+        assert not re.search(r"\d|%", hud)
+    assert "Reading the photo on this computer" in re.search(r"HUD_LOCAL = '(.*?)';", CORE).group(1)
+    assert "hosting server" in re.search(r"HUD_HOSTED = '(.*?)';", CORE).group(1)
     assert "@keyframes mc-indet" in theme.css() and "animation: mc-indet" in theme.css()
 
 

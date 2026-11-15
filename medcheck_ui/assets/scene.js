@@ -53,6 +53,7 @@ function create(data) {
     const prev = st.state.phase;
     st.state = { phase: (d && d.phase) || 'idle', status: (d && d.status) || null };
     document.documentElement.setAttribute('data-mc-phase', st.state.phase);
+    if (st.hudText) st.hudText();
     if (prev !== 'result' && st.state.phase === 'result' && st.onResult) st.onResult();
     if (st.apply) st.apply();
   };
@@ -166,7 +167,11 @@ async function init(st, on) {
   brackets = document.createElement('div'); brackets.id = 'mc-brackets'; brackets.setAttribute('aria-hidden', 'true');
   brackets.innerHTML = '<i></i><i></i><i></i><i></i>'; document.body.appendChild(brackets);
   hud = document.createElement('div'); hud.id = 'mc-hud'; hud.setAttribute('role', 'status');
-  hud.innerHTML = '<b>Reading the photo on this computer</b><span>Offline text recognition is reading it. This takes a few seconds.</span><em></em>';
+  // the wording depends on where the app runs: a marker element (#mc-hosted) is rendered by the story when it is hosted
+  const HUD_LOCAL = '<b>Reading the photo on this computer</b><span>Offline text recognition is reading it. This takes a few seconds.</span><em></em>';
+  const HUD_HOSTED = '<b>Reading the photo on the hosting server</b><span>Text recognition is reading it. This takes a few seconds.</span><em></em>';
+  st.hudText = () => { hud.innerHTML = document.getElementById('mc-hosted') ? HUD_HOSTED : HUD_LOCAL; };
+  st.hudText();
   document.body.appendChild(hud);
 
   // ---- viewport ----

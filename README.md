@@ -26,7 +26,8 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m streamlit run app.py
 ```
 The second install adds the primary OCR engine (RapidOCR, about 72 MB, offline, models bundled and hash-checked); see `docs/OCR_ENGINES.md`. Without it the app runs on Tesseract alone and says so.
-The app opens at http://localhost:8501 and listens on localhost only. Photos are processed in memory and are not saved, logged or sent anywhere.
+The app opens at http://localhost:8501 and listens on localhost only. Run locally, photos are processed in memory on your computer and are not saved, logged or sent anywhere.
+`requirements.txt` now also lists the OCR stack (used by Streamlit Community Cloud, which reads only that file); on an existing environment the second install above stays valid. Hosted use is a different privacy case: the photo is uploaded to the hosting server (processed in memory, not saved or logged by MedCheck, no external OCR service). See `docs/DEPLOYMENT.md` (prepared, not yet deployed).
 
 ## Interface
 The default interface is a five-scene scroll story (a capsule, an illustrative glass of water, evidence turning into text, a magnified medicine carton, and a neutral comparison) that leads into the check tool. The water scene is an illustration only: MedCheck never tests or dissolves a medicine. It runs entirely offline (Three.js is vendored in `static/vendor/three/`, with its licence) and the scan animation runs while the real OCR runs. If the browser cannot render WebGL, or you prefer the plain interface, set `MEDCHECK_PLAIN_UI=1` before `streamlit run app.py`; every check works identically. The 3D layer is decoration: it never receives your photo or text. See `docs/UI_UX_GUIDELINES.md`.

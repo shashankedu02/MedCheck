@@ -16,7 +16,7 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe -m pip install --no-deps -r requirements-ocr.txt
 ```
-`--no-deps` is deliberate: `rapidocr-onnxruntime` declares `opencv-python`, which would install a second `cv2` build next to the project's `opencv-python-headless` (same 5.0.0.93 module). `pip check` therefore lists that one declared requirement as missing; this is expected. All real dependencies are pinned in `requirements-ocr.txt`. Without these packages the app still runs on Tesseract alone and says so.
+(D-034: `requirements.txt` now also carries these pins for Streamlit Community Cloud, with the same OpenCV version under the name `opencv-python`; see `docs/DEPLOYMENT.md`.) `--no-deps` is deliberate: `rapidocr-onnxruntime` declares `opencv-python`, which would install a second `cv2` build next to the project's `opencv-python-headless` (same 5.0.0.93 module). `pip check` therefore lists that one declared requirement as missing; this is expected. All real dependencies are pinned in `requirements-ocr.txt`. Without these packages the app still runs on Tesseract alone and says so.
 
 ## Size
 `rapidocr_onnxruntime` 14 MB (including 13.7 MB of models), `onnxruntime` 54 MB, `shapely` 3.4 MB, plus small packages: about 72 MB added. `opencv` is already part of the project.

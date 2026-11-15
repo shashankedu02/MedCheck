@@ -10,6 +10,8 @@ from urllib.parse import quote
 
 import streamlit as st
 
+from medcheck_ui import hosting
+
 # Palette (checked by tests/test_ui_scene.py against WCAG 2.x AA).
 TEXT = "#eaf4ff"
 MUTED = "#b4c7dd"
@@ -20,8 +22,8 @@ STEP_ALPHA = 0.85               # backing of the scene captions (navy over whate
 
 TAGLINE = ("Read the batch.", "Check the list.", "Say so when unsure.")
 HERO_LEAD = "Scan a medicine strip and check its batch number against the CDSCO August 2026 NSQ list. When the evidence is unclear, MedCheck says Unable to verify."
-HERO_NOTE = "A lookup aid on this computer. Not an authenticity or safety test, and not medical advice."
-CHIP_OFFLINE = ("Offline", "everything runs on this computer")
+HERO_NOTE = hosting.HERO_NOTE_LOCAL   # the hosted variant is chosen at render time (hosting.is_hosted)
+CHIP_OFFLINE = hosting.CHIP_LOCAL
 CHIP_ABSTAIN = ("Abstains", "when the evidence is unclear")
 
 # The five connected scenes (ids match SCENES in assets/scene.js). Scene 1's text is the hero (see story_html).
@@ -159,12 +161,22 @@ _FALLBACK_URI = "data:image/svg+xml;charset=utf-8," + quote(_FALLBACK_SVG)
 def chips(records: int | None, period: str | None) -> tuple[tuple[str, str], ...]:
     """Fact chips; every figure comes from the loaded dataset (nothing hard-coded, no performance claim)."""
     first = (f"{records}", f"records, {period} list") if records and period else ("One list", "CDSCO NSQ, August 2026")
-    return (first, CHIP_OFFLINE, CHIP_ABSTAIN)
+    return (first, hosting.CHIP_HOSTED if hosting.is_hosted() else CHIP_OFFLINE, CHIP_ABSTAIN)
 
 
 def scene_texts(period: str | None) -> tuple[tuple[str, str, str, str, str], ...]:
     p = period or "August 2026"
-    return tuple((i, n, e, t, b.format(period=p)) for i, n, e, t, b in SCENES)
+    out = tuple((i, n, e, t, b.format(period=p)) for i, n, e, t, b in SCENES)
+    if not hosting.is_hosted():
+        return out
+    swap = {hosting.INSPECTION_LOCAL: hosting.INSPECTION_HOSTED}
+    return tuple((i, n, e, t, _hosted_body(b, swap)) for i, n, e, t, b in out)
+
+
+def _hosted_body(body: str, swap: dict[str, str]) -> str:
+    for old, new in swap.items():
+        body = body.replace(old, new)
+    return body.replace(hosting.EVIDENCE_ENGINES_LOCAL, hosting.EVIDENCE_ENGINES_HOSTED)
 
 
 def story_html(records: int | None = None, period: str | None = None) -> str:
@@ -178,13 +190,15 @@ def story_html(records: int | None = None, period: str | None = None) -> str:
         if k == 1:
             inner = (f'<div class="mc-eyebrow"><b>{n}</b> {eyebrow} · CDSCO NSQ list · {period or "August 2026"}</div>'
                      f'<div class="mc-brand">MedCheck</div><h1 class="mc-tag">{tag}</h1>'
-                     f'<p>{HERO_LEAD}</p><p class="mc-note">{HERO_NOTE}</p>'
+                     f'<p>{HERO_LEAD}</p><p class="mc-note">{hosting.HERO_NOTE_HOSTED if hosting.is_hosted() else HERO_NOTE}</p>'
                      '<div class="mc-cta-row"><a class="mc-cta" href="#mc-tool">Start a check</a><span class="mc-hint">or scroll to watch how it works</span></div>'
                      f'<ul class="mc-chips">{items}</ul>')
         else:
             cta = '<div class="mc-cta-row"><a class="mc-cta" href="#mc-tool">Start a check</a></div>' if k == 5 else ""
             inner = f'<div class="mc-eyebrow"><b>{n}</b> {eyebrow}</div><h2>{title}</h2><p>{body}</p>{cta}'
         parts.append(f'<section class="mc-scene" id="mc-scene-{k}" data-scene="{k}" data-id="{sid}" style="min-height:{HEIGHTS_VH[k - 1]}vh"><div class="mc-cap">{inner}</div></section>')
+    if hosting.is_hosted():   # read by scene.js to choose the hosted wording of the reading panel
+        parts.append('<span id="mc-hosted" hidden style="display:none"></span>')
     parts.append('<div id="mc-tool"></div>')
     return "".join(parts)
 

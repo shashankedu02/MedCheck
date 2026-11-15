@@ -19,7 +19,7 @@
 - Known exposure: the result view injects a stylesheet and relies on Streamlit's generated CSS class names; this is presentation only and carries no user data.
 
 ## Deployment boundary
-A local app processes images on the user's machine. A hosted Streamlit app receives and processes uploaded images on the hosting server. Never claim hosted processing is on-device. Before deployment, document provider processing, retention, access controls and deletion behavior and obtain approval.
+(D-034: the interface switches to hosted wording automatically on Community Cloud, `medcheck_ui/hosting.py`; deployment is prepared but not yet done.) A local app processes images on the user's machine. A hosted Streamlit app receives and processes uploaded images on the hosting server. Never claim hosted processing is on-device. Before deployment, document provider processing, retention, access controls and deletion behavior and obtain approval.
 
 ## Data integrity
 The official dataset is treated as reference data. Never silently alter source strings. Dataset parse failure must fail closed. Keep audit provenance and file hashes for releases.
