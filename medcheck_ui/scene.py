@@ -43,10 +43,18 @@ def scene_payload(phase: str, status: str | None = None) -> dict:
     return {"phase": phase, "status": status if phase == "result" else None}
 
 
+SCENES = ("medicine", "transformation", "evidence", "inspection", "comparison")   # must match SCENES in assets/scene.js
+
+
+def script() -> str:
+    """The browser module: the stage builders (stages.js) followed by the core (scene.js) with the default export."""
+    return (ASSETS / "stages.js").read_text(encoding="utf-8") + "\n" + (ASSETS / "scene.js").read_text(encoding="utf-8")
+
+
 @functools.cache
 def _component():
     # Registered once per server process (re-registering the same name on every rerun logs a warning).
-    return st.components.v2.component("medcheck_stage", html="", js=(ASSETS / "scene.js").read_text(encoding="utf-8"))
+    return st.components.v2.component("medcheck_stage", html="", js=script())
 
 
 def render_scene(slot, phase: str, status: str | None = None) -> None:

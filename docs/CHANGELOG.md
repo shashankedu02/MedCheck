@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-15 - cinematic five-scene story (M15, branch `ui-redesign`, D-030)
+- One persistent Three.js scene driven by a master clock from the measured scroll position: capsule, water glass with effervescent tablet, evidence particles and two readers, medicine carton with a real optical magnifier (render-to-texture lens with distortion), neutral comparison panels, then the real tool. Catmull-Rom camera path, inertia and a speed limit, scene dots and a skip link.
+- Scanning stays tied to the real OCR phase (camera returns to the magnifier, indeterminate reading panel, brackets on the batch line). Frontend only; plain UI, no-WebGL, reduced-motion and lite tiers kept; no new dependency; no backend change.
+
 ## 2026-11-15 - 3D interface visual refinement (M14b, branch `ui-redesign`)
 - Premium strip: procedural brushed/crinkled foil with bump and roughness maps and perforation lines, lathe-profiled refractive glass blisters, glossy capsules with a seam ring, capsule shadows, softbox image-based lighting, backdrop glow and light motes.
 - Cinematic scroll: poses keyed to the real position of each story step (macro, batch-band close-up, pull-back, tool) with inertia and pointer parallax; editorial step layout replaces the cards; collapsed glass sidebar; composed hero with dataset-driven fact chips.

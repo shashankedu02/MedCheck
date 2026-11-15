@@ -21,7 +21,7 @@ from medcheck_ui import theme
 
 ROOT = Path(__file__).resolve().parent.parent
 APP = str(ROOT / "app.py")
-JS = (ROOT / "medcheck_ui" / "assets" / "scene.js").read_text(encoding="utf-8")
+JS = scene_mod.script()          # stages.js + scene.js: the exact module the browser receives
 BANNED = re.compile(r"\b(safe|genuine|authentic\w*|counterfeit|fake|guarantee\w*)\b", re.I)
 ALLOWED_NEGATIONS = ("not an authenticity or safety test",)
 
@@ -51,7 +51,7 @@ def test_vendored_three_matches_its_pinned_hash_and_ships_the_licence():
 
 
 def test_no_remote_urls_in_the_ui_assets_or_theme():
-    css_and_html = theme._CSS + theme.hero_html() + theme.steps_html()
+    css_and_html = theme.css() + theme.story_html(220, "AUG-2026")
     for text in (JS, css_and_html):
         urls = [u for u in re.findall(r"https?://[^\s'\"<>)]+", text) if "www.w3.org/2000/svg" not in u]
         assert urls == [], urls
@@ -64,7 +64,7 @@ def test_component_releases_its_resources_and_resizes_with_the_viewport():
     assert "st.dispose" in JS and "forceContextLoss" in JS and "renderer.dispose()" in JS and "canvas.remove()" in JS
     assert "cancelAnimationFrame" in JS and "removeEventListener" in JS
     # every texture and render target is registered with track() and released by st.free; overlays are removed too
-    assert "track(envTarget)" in JS and "disposables.forEach((d) =>" in JS and JS.count("track(") >= 6
+    assert "envTarget = ctx.track(" in JS and "disposables.forEach((d) =>" in JS and JS.count("track(") >= 12
     assert "hud.remove()" in JS and "brackets.remove()" in JS
     assert "return st.makeCleanup()" in JS and "st.calls === id" in JS  # an older instance never disposes a newer mount
     assert "addEventListener(ev, fn, o)" in JS and "'resize'" in JS and "camera.aspect = w / h" in JS and "updateProjectionMatrix()" in JS
@@ -77,8 +77,10 @@ def test_fallbacks_and_frame_cap_exist():
     assert "document.hidden" in JS  # paused in a background tab
     # still artwork shown unless 3D runs (a CSS data-URI background: st.html strips inline <svg>)
     assert 'html[data-mc-stage="3d"] .mc-art-fallback' in theme._CSS and "data:image/svg+xml" in theme.css()
-    assert 'class="mc-art-fallback"' in theme.hero_html()
+    assert 'class="mc-art-fallback"' in theme.story_html()
     assert "prefers-reduced-motion: reduce" in theme._CSS
+    # without 3D the long scroll story collapses to short sections: nobody scrolls through empty space
+    assert 'html:not([data-mc-stage="3d"]) .mc-scene' in theme._CSS and 'html:not([data-mc-stage="3d"]) .mc-dots' in theme._CSS
 
 
 # ---------------- privacy boundary: the component only ever gets a phase and a status name ----------------
@@ -163,7 +165,7 @@ def test_plain_ui_switch(monkeypatch):
 def test_default_ui_has_stage_story_and_the_whole_tool():
     at = AppTest.from_file(APP, default_timeout=30).run()
     assert not at.exception
-    assert len(_components(at)) == 1 and len(at.get("html")) == 3  # style, hero, steps (recursive: the style block sits in its own container)
+    assert len(_components(at)) == 1 and len(at.get("html")) == 2  # style and the five-scene story (recursive: the style block sits in its own container)
     assert len(at.tabs) == 2 and len(at.file_uploader) == 1 and len(at.camera_input) == 1 and not at.success
 
 
@@ -177,7 +179,8 @@ def test_app_still_works_when_the_presentation_layer_cannot_load(monkeypatch):
 # ---------------- wording ----------------
 def test_story_text_follows_the_wording_rules():
     chips = [a + " " + b for a, b in theme.chips(220, "AUG-2026")]
-    text = " ".join([theme.HERO_LEAD, theme.HERO_NOTE, *theme.TAGLINE, *chips, *(t + " " + d for _n, t, d in theme.STEPS)])
+    scenes = [" ".join(parts[2:]) for parts in theme.scene_texts("AUG-2026")]
+    text = " ".join([theme.HERO_LEAD, theme.HERO_NOTE, *theme.TAGLINE, *chips, *scenes])
     scrubbed = text
     for ok in ALLOWED_NEGATIONS:
         scrubbed = scrubbed.replace(ok, "").replace(ok.capitalize(), "")
