@@ -29,7 +29,7 @@ The second install adds the primary OCR engine (RapidOCR, about 72 MB, offline, 
 The app opens at http://localhost:8501 and listens on localhost only. Photos are processed in memory and are not saved, logged or sent anywhere.
 
 ## Interface
-The default interface has a 3D blister-strip scene, a short story and the check tool. It runs entirely offline (Three.js is vendored in `static/vendor/three/`, with its licence) and the scan animation runs while the real OCR runs. If the browser cannot render WebGL, or you prefer the plain interface, set `MEDCHECK_PLAIN_UI=1` before `streamlit run app.py`; every check works identically. The 3D layer is decoration: it never receives your photo or text. See `docs/UI_UX_GUIDELINES.md`.
+The default interface is a five-scene scroll story (a capsule, an illustrative glass of water, evidence turning into text, a magnified medicine carton, and a neutral comparison) that leads into the check tool. The water scene is an illustration only: MedCheck never tests or dissolves a medicine. It runs entirely offline (Three.js is vendored in `static/vendor/three/`, with its licence) and the scan animation runs while the real OCR runs. If the browser cannot render WebGL, or you prefer the plain interface, set `MEDCHECK_PLAIN_UI=1` before `streamlit run app.py`; every check works identically. The 3D layer is decoration: it never receives your photo or text. See `docs/UI_UX_GUIDELINES.md`.
 
 ## Tests
 ```powershell
