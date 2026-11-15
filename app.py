@@ -37,6 +37,11 @@ except Exception:  # noqa: BLE001
     def plain_ui() -> bool:  # type: ignore[misc,no-redef]
         return True
 
+try:  # result presentation (status banner, reading cards, notes); without it the basic native rendering below is used
+    from medcheck_ui import result as result_view
+except Exception:  # noqa: BLE001
+    result_view = None
+
 
 @st.cache_resource(show_spinner=False)
 def get_pipeline() -> MedCheckPipeline:
@@ -55,6 +60,14 @@ def show_field(label: str, state: FieldState, raw: str | None, note: str = "") -
 
 
 def render_status(result: ScanResult, period: str) -> None:
+    """Status banner, reading cards and (for an alert) the matched record; basic native rendering if the view is unavailable."""
+    if result_view is not None:
+        st.html(result_view.top_html(result, period))
+    else:
+        render_status_basic(result, period)
+
+
+def render_status_basic(result: ScanResult, period: str) -> None:
     if result.rejection is not None:
         st.error(f"This photo could not be used. {result.rejection.message}")
         return
@@ -75,7 +88,35 @@ def render_status(result: ScanResult, period: str) -> None:
     st.caption(f"Checked against: {period} CDSCO NSQ list only.")
 
 
+def render_technical(result: ScanResult) -> None:
+    """The recognised text, as plain text only (never markup), behind an expander."""
+    ex = result.extraction
+    if result.rejection is not None or result.decision is None or result.decision.is_system_error or ex is None:
+        return
+    with st.expander("Technical details (recognised text)"):
+        st.text(f"OCR engines: {result.engine_version}; passes: {result.ocr_passes}; views: {', '.join(result.variants_used)}; "
+                f"time: {result.elapsed_seconds:.1f}s")
+        if ex.batch.reading_sources:
+            st.text("Batch readings by source: " + " | ".join(f"{raw} [{src}]" for raw, src in ex.batch.reading_sources))
+        if ex.edge_ignored:
+            st.caption("A batch-like line touching the edge of the photo was ignored because it may be cut off: " + " | ".join(ex.edge_ignored))
+        for note in result.notes:
+            st.caption(note)
+        st.text(ex.product_text or "(no text recognised)")
+
+
 def render_details(result: ScanResult) -> None:
+    """Why this result, the notes and the technical expander (below the batch form in the redesigned view)."""
+    if result_view is None:
+        render_details_basic(result)
+        return
+    block = result_view.bottom_html(result)
+    if block:
+        st.html(block)
+    render_technical(result)
+
+
+def render_details_basic(result: ScanResult) -> None:
     d = result.decision
     if result.rejection is not None or d is None or d.is_system_error:
         if d is not None:
@@ -135,32 +176,58 @@ def render_details(result: ScanResult) -> None:
 MANUAL_KEYS = ("manual_text", "manual_confirmed")
 
 
+def pick_batch_suggestion(candidate: str) -> None:
+    """Button callback: put one OCR reading, exactly as recognised, into the batch box. It never confirms and never submits:
+    the pack confirmation is cleared (it belongs to the number it was given for) and the user must tick it again."""
+    st.session_state["manual_text"] = candidate
+    st.session_state["manual_confirmed"] = False
+
+
+def render_batch_suggestions(result: ScanResult) -> None:
+    """The batch readings the OCR passes disagreed on, as buttons. Nothing is preselected; a click only fills the box."""
+    ex, d = result.extraction, result.decision
+    if ex is None or d is None or d.is_system_error or d.status is not Status.UNABLE_TO_VERIFY or not ex.batch.readings:
+        return
+    st.html(result_view.suggestions_intro_html() if result_view is not None else "<p>Batch readings seen across the passes:</p>")
+    with st.container(horizontal=True, key="mc_suggest"):
+        for i, candidate in enumerate(ex.batch.readings):
+            selected = st.session_state.get("manual_text") == candidate  # exact comparison: nothing is normalised
+            st.button(candidate, key=f"mc_sugg_{'on' if selected else 'off'}_{i}", on_click=pick_batch_suggestion, args=(candidate,),
+                      icon=":material/check:" if selected else None, help="Fill the box below with this reading. You still need to compare it with the pack and confirm.")
+
+
 def render_manual_entry(pipeline: MedCheckPipeline, result: ScanResult) -> None:
     """Review / correct / enter the batch. The typed value is never OCR evidence: it goes through the same
     matching rules, and product corroboration still comes only from the photo's text."""
     ex = result.extraction
     if result.rejection is not None or ex is None:
         return
-    st.subheader("Check or enter the batch number yourself")
-    if result.decision is not None and result.decision.reason_code == "ocr_batch_unconfirmed":
-        st.info("Next step: compare the number below with the one printed on the pack, correct it if needed, tick the box and press the button.")
-    st.caption(
-        "Compare the number below with the one printed on the pack. If it is wrong or missing, type it exactly as printed "
-        "(keep letters and digits as they are: O is not 0, I is not 1, S is not 5). "
-        "Confirming means you checked the printed batch number; it does not show the medicine is genuine or safe."
-    )
-    if "manual_text" not in st.session_state:
-        st.session_state["manual_text"] = ex.batch.raw if ex.batch.state is FieldState.READ and ex.batch.raw else ""
-    # A confirmation belongs to the number it was given for: editing the number clears the tick.
-    st.text_input("Batch number as printed on the pack", key="manual_text", max_chars=30,
-                  on_change=lambda: st.session_state.__setitem__("manual_confirmed", False))
-    st.checkbox("I compared this number with the one printed on the pack (this confirms the printed number only)", key="manual_confirmed")
-    if st.button("Check this batch number"):
-        try:
-            st.session_state["result"] = pipeline.verify_manual(result, st.session_state["manual_text"], bool(st.session_state.get("manual_confirmed")))
-            st.rerun()
-        except ManualEntryError as exc:
-            st.warning(str(exc))
+    with st.container(key="mc_verify"):  # styled as one panel by medcheck_ui.result (the widgets and their keys are unchanged)
+        st.subheader("Check or enter the batch number yourself")
+        if result.decision is not None and result.decision.reason_code == "ocr_batch_unconfirmed":
+            st.info("Next step: compare the number below with the one printed on the pack, correct it if needed, tick the box and press the button.")
+        if result_view is not None:
+            st.html(result_view.steps_html())
+            st.html('<p class="mcr-confnote">Confirming means you checked the printed batch number; it does not show the medicine is genuine or safe.</p>')
+        else:
+            st.caption(
+                "Compare the number below with the one printed on the pack. If it is wrong or missing, type it exactly as printed "
+                "(keep letters and digits as they are: O is not 0, I is not 1, S is not 5). "
+                "Confirming means you checked the printed batch number; it does not show the medicine is genuine or safe."
+            )
+        if "manual_text" not in st.session_state:
+            st.session_state["manual_text"] = ex.batch.raw if ex.batch.state is FieldState.READ and ex.batch.raw else ""
+        render_batch_suggestions(result)
+        # A confirmation belongs to the number it was given for: editing the number clears the tick.
+        st.text_input("Batch number as printed on the pack", key="manual_text", max_chars=30,
+                      on_change=lambda: st.session_state.__setitem__("manual_confirmed", False))
+        st.checkbox("I compared this number with the one printed on the pack (this confirms the printed number only)", key="manual_confirmed")
+        if st.button("Check this batch number", type="primary"):
+            try:
+                st.session_state["result"] = pipeline.verify_manual(result, st.session_state["manual_text"], bool(st.session_state.get("manual_confirmed")))
+                st.rerun()
+            except ManualEntryError as exc:
+                st.warning(str(exc))
 
 
 def set_stage(stage, phase: str, result: ScanResult | None = None) -> None:
@@ -226,8 +293,12 @@ def render_tool(pipeline: MedCheckPipeline, period: str, stage) -> None:
     result = st.session_state.get("result")
     if result is not None:
         render_status(result, period)
-        render_details(result)
-        render_manual_entry(pipeline, result)
+        if result_view is not None:  # redesigned order: result, then the action (batch form), then the explanation and notes
+            render_manual_entry(pipeline, result)
+            render_details(result)
+        else:
+            render_details(result)
+            render_manual_entry(pipeline, result)
         if st.button("Clear and start over"):
             st.session_state.pop("result", None)
             st.session_state["result_digest"] = None

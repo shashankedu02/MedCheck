@@ -146,6 +146,18 @@ def test_confirmed_clean_negative_is_shown_and_records_the_confirmation(source):
 
 
 @pytest.mark.parametrize("source", list(BatchSource))
+def test_no_alert_wording_names_the_batch_source_correctly(source):
+    """A user-corrected or typed batch is never described as 'read from the photo'; an OCR batch still is."""
+    d = run(match=_match(MatchOutcome.NO_MATCH), confirmed=True, source=source)
+    assert d.status is Status.NO_ALERT_FOUND
+    if source is BatchSource.OCR:
+        assert "for the batch read from the photo was found" in d.explanation
+    else:
+        assert "for the batch you entered was found" in d.explanation and "read from the photo" not in d.explanation
+    assert "Batch checked: AB12345 (confirmed by you against the pack)" in d.explanation  # unchanged
+
+
+@pytest.mark.parametrize("source", list(BatchSource))
 def test_expired_is_also_withheld_until_confirmed(source):
     assert run(match=_match(MatchOutcome.NO_MATCH), expiry=ExpiryOutcome.EXPIRED, confirmed=False, source=source).status is Status.UNABLE_TO_VERIFY
     assert run(match=_match(MatchOutcome.NO_MATCH), expiry=ExpiryOutcome.EXPIRED, confirmed=True, source=source).status is Status.EXPIRED

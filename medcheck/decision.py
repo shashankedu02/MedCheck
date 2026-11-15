@@ -224,6 +224,7 @@ def decide(
         caveats = (_CONFIRM_NOTE, *caveats)
     if manual:
         explanation = explanation.replace("The batch number read from the photo", "The batch number you entered")
+        explanation = explanation.replace("for the batch read from the photo", "for the batch you entered")  # No alert found / Expired wording
         caveats = (_SOURCE_NOTE[batch_source], *caveats)
     return replace(d, explanation=explanation, caveats=caveats, batch_source=batch_source, batch_as_read=batch_raw,
                    batch_confirmed=bool(entry_confirmed and d.status in (Status.NO_ALERT_FOUND, Status.EXPIRED)),
