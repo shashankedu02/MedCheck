@@ -53,7 +53,7 @@ def status_kind(result) -> str:
     return {Status.ALERT_FOUND: "alert", Status.NO_ALERT_FOUND: "no_alert", Status.EXPIRED: "expired"}.get(d.status, "unable")
 
 
-def _hero(result, period: str) -> str:
+def _hero(result, period: str, eyebrow: str = "Result") -> str:
     kind = status_kind(result)
     glyph = ACCENTS[kind][1]
     if kind == "rejected":
@@ -71,8 +71,25 @@ def _hero(result, period: str) -> str:
     role = "alert" if kind in ("alert", "system", "rejected") else "status"
     return (f'<section class="mcr-hero" data-status="{kind}" role="{role}">'
             f'<div class="mcr-glyph" aria-hidden="true">{glyph}</div>'
-            f'<div class="mcr-hero-body"><p class="mcr-eyebrow">Result</p><h2 class="mcr-headline">{_e(headline)}</h2>'
+            f'<div class="mcr-hero-body"><p class="mcr-eyebrow">{_e(eyebrow)}</p><h2 class="mcr-headline">{_e(headline)}</h2>'
             f'<p class="mcr-lead">{_e(lead)}</p>{meta}{scope}</div></section>')
+
+
+def _photo_alert(result, period: str) -> str:
+    """Alert-level section for the photo's preserved alert, shown above the result for the user's own batch."""
+    photo = result.preserved_photo_alert
+    if photo is None:
+        return ""
+    d = photo.decision
+    lead = result.preserved_photo_alert_text(period)
+    return (f'<section class="mcr-hero mcr-photo" data-status="alert" role="alert">'
+            f'<div class="mcr-glyph" aria-hidden="true">{ACCENTS["alert"][1]}</div>'
+            f'<div class="mcr-hero-body"><p class="mcr-eyebrow">From the photo</p>'
+            f'<h2 class="mcr-headline">Alert found for the batch read from the photo</h2>'
+            f'<p class="mcr-lead">{_e(lead)}</p>'
+            f'<p class="mcr-batch"><span class="mcr-k">Batch read from the photo</span>'
+            f'<b class="mcr-mono">{_e(d.batch_as_read)}</b><em>read from the photo</em></p></div></section>'
+            f'{_action_check(photo)}{_record(photo)}')
 
 
 def _action_check(result) -> str:
@@ -131,8 +148,11 @@ def _record(result) -> str:
 
 
 def top_html(result, period: str) -> str:
-    """Status banner, the alert's action check, the three reading cards and (for an alert) the matched record."""
-    return (f"<style>{css()}</style><div class=\"mcr\">{_hero(result, period)}{_action_check(result)}"
+    """Status banner, the alert's action check, the three reading cards and (for an alert) the matched record. After a manual
+    entry that follows a photo alert, the photo's alert (banner, action check, record) is shown first and stays visible."""
+    notice = _photo_alert(result, period)
+    eyebrow = "Result for the batch you entered" if notice else "Result"
+    return (f"<style>{css()}</style><div class=\"mcr\">{notice}{_hero(result, period, eyebrow)}{_action_check(result)}"
             f"{_readings(result)}{_record(result)}</div>")
 
 
@@ -188,6 +208,7 @@ def css() -> str:
   border: 1px solid color-mix(in srgb, var(--mc-acc) 45%, transparent); border-left: 8px solid var(--mc-acc);
   background: linear-gradient(135deg, color-mix(in srgb, var(--mc-acc) 16%, #06142b) 0%, rgba(8,24,50,.9) 70%); }
 .mcr-hero[data-status="system"] { border-style: dashed; border-left-style: solid; }
+.mcr-photo { margin-bottom: 1.4rem; }
 .mcr-glyph { flex: none; width: 3.1rem; height: 3.1rem; border-radius: 50%; border: 2.5px solid var(--mc-acc); color: var(--mc-acc);
   display: grid; place-items: center; font-size: 1.7rem; font-weight: 700; line-height: 1; font-family: Georgia,"Times New Roman",serif; margin-top: .15rem; }
 .mcr-hero-body { min-width: 0; }

@@ -166,7 +166,7 @@ async function init(st, on) {
   brackets = document.createElement('div'); brackets.id = 'mc-brackets'; brackets.setAttribute('aria-hidden', 'true');
   brackets.innerHTML = '<i></i><i></i><i></i><i></i>'; document.body.appendChild(brackets);
   hud = document.createElement('div'); hud.id = 'mc-hud'; hud.setAttribute('role', 'status');
-  hud.innerHTML = '<b>Reading the photo on this computer</b><span>Two offline text-recognition engines are working. This takes a few seconds.</span><em></em>';
+  hud.innerHTML = '<b>Reading the photo on this computer</b><span>Offline text recognition is reading it. This takes a few seconds.</span><em></em>';
   document.body.appendChild(hud);
 
   // ---- viewport ----

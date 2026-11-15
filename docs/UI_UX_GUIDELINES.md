@@ -35,6 +35,12 @@ When the result is `Unable to verify` and the OCR passes produced batch readings
 - **Keyboard and focus.** Native buttons (Tab, Enter, Space) with a 3 px `:focus-visible` ring.
 - **Scope.** Only the presentation and the form callback changed: no extraction, candidate generation, matching, classification, dataset, threshold or expiry code.
 
+### A photo alert survives a manual entry (audit AU-1; `pipeline.py`, `medcheck_ui/result.py`, `app.py`)
+- If the photo produced `Alert found` and the user then types or corrects a DIFFERENT batch, the photo's alert is not replaced. An alert-level section "Alert found for the batch read from the photo" stays at the top, followed by the photo's action check and matched record; the user's result follows under "Result for the batch you entered" and is labelled by its `BatchSource`.
+- One wording (`ScanResult.preserved_photo_alert_text`): the photo's batch matched a listed serial and the photo corroborated it; the user's result applies only to the batch they entered and does not cancel, disprove or replace the photo's alert; compare the pack with both numbers.
+- Applies to the redesigned renderer and to the basic fallback (`render_photo_alert_basic`). It survives repeated entries (`photo_result` always holds the first photo result). It does not appear when the photo gave no alert or when the user only confirms the same OCR reading. The decorative stage tint follows the photo's alert.
+- The user's batch keeps every existing rule: confirmation before a clean negative (D-026), never OCR evidence or corroboration, same matching and abstention. Nothing in extraction, matching, decision, dataset, threshold or expiry code changed.
+
 ## 3D interface (D-029, D-030; branch `ui-redesign`)
 Presentation only (`medcheck_ui/`, the layout in `app.py`); no OCR, matching, decision, dataset or evaluation code is involved.
 
@@ -44,7 +50,7 @@ Presentation only (`medcheck_ui/`, the layout in `app.py`); no OCR, matching, de
 |---|---|
 | 1 The medicine | A glass capsule with a seam, a translucent gel and glitter, floating in a bokeh studio; slow rotation, depth, subtle camera drift. Hero statement and fact chips (figures from the loaded dataset). |
 | 2 The transformation | A glass of water (refractive water body, so the backdrop bends through it) and an effervescent tablet that descends, fizzes and dissolves. No fluid simulation: bubbles and swirl particles are stateless functions of `t`. Labelled in the caption as an illustration: MedCheck does not test, dissolve or analyse a medicine. |
-| 3 Evidence emerges | The dissolved particles leave the glass, organise into rows, resolve into glyph shapes behind a scanning line, and split into two reader outputs (READER 1 and READER 2) read by two beams. The text is illustrative placeholder text (a test checks it is not, and is not near, any listed batch). |
+| 3 Evidence emerges (copy corrected 2026-11-15, AU-5: several readings in different views, up to two offline engines, at least two agreeing and none contradicting, agreeing readings can still be wrong) | The dissolved particles leave the glass, organise into rows, resolve into glyph shapes behind a scanning line, and split into two reader outputs (READER 1 and READER 2) read by two beams. The text is illustrative placeholder text (a test checks it is not, and is not near, any listed batch). |
 | 4 The inspection | The particles land on a procedural medicine carton as printed information (Mfd., Exp., Lot., a barcode, silver foil panel). A magnifying glass travels along the printed lines and dwells on the batch line. The lens is a real optical effect: a second, narrower camera renders the scene behind the lens into a render target which a shader maps to the lens with barrel distortion and a chromatic edge, so the text is genuinely enlarged and crisp. A subtle cyan light follows the lens. |
 | 5 The comparison | The batch characters detach from the carton and fly into the tiles of an "INSPECTED BATCH" panel; beside it a "CDSCO NSQ LIST" panel shows neutral ghost rows. A single connector and a restrained sweep link them. **No match, tick, shield or result is shown.** The camera pulls back, the canvas dims and the real tool rises in from below. |
 

@@ -31,7 +31,7 @@ SCENES = (
     ("transformation", "02", "The transformation", "A medicine leaves a trail.",
      "This scene is an illustration only. MedCheck does not test, dissolve or analyse a medicine: it reads what is printed on the pack."),
     ("evidence", "03", "Evidence emerges", "The trail becomes text.",
-     "Two offline text-recognition engines read the photo independently. A batch counts only when both passes agree; otherwise MedCheck reports it as uncertain."),
+     "The photo is read several times, in different views, by up to two offline engines. A batch counts as read only when at least two readings agree and none contradicts them; otherwise it is uncertain. Agreeing readings can still be wrong."),
     ("inspection", "04", "The inspection", "Look at the printed batch.",
      "Photograph the line marked B.No., Batch or Lot so it fills the frame. The photo stays in memory on this computer and is never saved."),
     ("comparison", "05", "The comparison", "Compare it with one list.",
