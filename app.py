@@ -67,12 +67,27 @@ def render_status(result: ScanResult, period: str) -> None:
         render_status_basic(result, period)
 
 
+def render_photo_alert_basic(result: ScanResult, period: str) -> None:
+    """Basic-rendering counterpart of the preserved photo alert: it stays visible after a manual entry (never erased)."""
+    kept = result.preserved_photo_alert
+    if kept is None:
+        return
+    st.error("**Alert found for the batch read from the photo**\n\n" + result.preserved_photo_alert_text(period))
+    if kept.decision.action_check:
+        st.warning(f"**Check before acting:** {kept.decision.action_check}")
+    rec = kept.matched_record
+    if rec is not None:
+        st.text(f"Photo alert - Serial: {rec.serial}   Product: {rec.product_name}   Listed batch: {rec.batch_number}")
+    st.caption("Result for the batch you entered:")
+
+
 def render_status_basic(result: ScanResult, period: str) -> None:
     if result.rejection is not None:
         st.error(f"This photo could not be used. {result.rejection.message}")
         return
     d = result.decision
     assert d is not None
+    render_photo_alert_basic(result, period)
     if d.is_system_error:
         st.error(f"**{d.headline}**\n\n{d.explanation}")
     elif d.status is Status.ALERT_FOUND:
@@ -235,7 +250,9 @@ def set_stage(stage, phase: str, result: ScanResult | None = None) -> None:
     if stage is None:
         return
     try:
-        render_scene(stage, phase, status_key(result.decision) if (phase == "result" and result is not None) else None)
+        # the decorative tint follows a preserved photo alert, not the calmer result of a batch the user entered afterwards
+        shown = (result.preserved_photo_alert or result).decision if result is not None else None
+        render_scene(stage, phase, status_key(shown) if (phase == "result" and result is not None) else None)
     except Exception:  # noqa: BLE001
         pass
 

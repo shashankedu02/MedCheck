@@ -104,3 +104,36 @@ def test_scanning_is_tied_to_the_real_phase_not_a_timer():
     hud = re.search(r"hud\.innerHTML = '(.*?)';", CORE).group(1)
     assert "Reading the photo on this computer" in hud and not re.search(r"\d|%", hud)
     assert "@keyframes mc-indet" in theme.css() and "animation: mc-indet" in theme.css()
+
+
+# ---------------- the evidence scene describes the real agreement rule (AU-5) ----------------
+def _evidence_text() -> str:
+    return next(" ".join(parts[2:]) for parts in theme.scene_texts("AUG-2026") if parts[0] == "evidence")
+
+
+def test_the_evidence_scene_describes_the_actual_agreement_rule_not_independent_engines():
+    from medcheck import config
+    from medcheck.extraction import PassFields, reconcile_batch
+    from medcheck.models import FieldState
+
+    def passes(*readings):  # one candidate (or none) per pass, from named views
+        return [PassFields(tuple(r), (), (), f"rapidocr:v{i}") for i, r in enumerate(readings)]
+
+    # the behaviour the copy claims: at least two readings agree, and any contradicting reading means "uncertain"
+    assert config.MIN_AGREEING_OCR_PASSES == 2  # if this changes, the story text below must be reviewed
+    assert reconcile_batch(passes(["AB12345"], ["AB12345"])).state is FieldState.READ              # two views of one engine suffice
+    assert reconcile_batch(passes(["AB12345"], [])).state is FieldState.AMBIGUOUS                 # one reading is not enough
+    assert reconcile_batch(passes(["AB12345"], ["AB12345"], ["AB12346"])).state is FieldState.AMBIGUOUS  # a contradiction abstains
+
+    text = _evidence_text()
+    assert "at least two readings agree" in text and "none contradicts them" in text and "otherwise it is uncertain" in text
+    assert "can still be wrong" in text                                  # agreement is not proof of correctness
+    assert "up to two offline engines" in text                           # a second engine is optional (Tesseract may be absent)
+    # the claims the old copy made, which the implementation does not support
+    assert "independently" not in text and "both passes" not in text and "Two offline" not in text
+    assert "always" not in text.lower() and "guarantee" not in text.lower()
+
+
+def test_the_scanning_overlay_does_not_claim_two_engines_are_always_working():
+    assert "Two offline" not in CORE and "engines are working" not in CORE  # a second engine is optional (Tesseract may be absent)
+    assert "Offline text recognition is reading it" in CORE

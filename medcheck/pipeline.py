@@ -47,6 +47,7 @@ from .models import (
     FieldState,
     ManualEntry,
     MatchAssessment,
+    Status,
     SystemFailure,
 )
 from .normalization import batch_key
@@ -77,6 +78,41 @@ class ScanResult:
     notes: tuple[str, ...] = field(default_factory=tuple)
     engines: tuple[str, ...] = ()
     manual: ManualEntry | None = None
+    # The result the PHOTO itself produced, kept unchanged once the user enters or corrects a batch. `decision`, `match` and
+    # `matched_record` above then describe the user's batch; this keeps what the photo said (for example an alert) so a
+    # manual entry can never erase it. None until a manual entry exists. Never itself holds a manual entry.
+    photo_result: "ScanResult | None" = None
+
+    @property
+    def preserved_photo_alert(self) -> "ScanResult | None":
+        """The photo's own result when it was `Alert found` and the user has since entered or corrected a DIFFERENT batch
+        (so `decision` now describes the user's batch). Renderers must keep showing it. None when there is nothing to keep:
+        no manual entry, the photo gave no alert, or the user only confirmed the same OCR reading."""
+        photo = self.photo_result
+        if photo is None or self.manual is None or self.manual.source is BatchSource.OCR:
+            return None
+        d = photo.decision
+        if d is None or d.is_system_error or d.status is not Status.ALERT_FOUND:
+            return None
+        return photo
+
+    def preserved_photo_alert_text(self, period: str) -> str:
+        """Plain-language explanation shown with the preserved photo alert (one wording for every renderer). It states that the
+        photo's batch matched a listed batch, that the user's batch gave a different (or also an alert) result, and that the
+        user's result neither cancels nor disproves the photo's alert."""
+        photo = self.preserved_photo_alert
+        if photo is None or photo.decision is None or self.manual is None:
+            return ""
+        rec = photo.matched_record
+        where = f"listed serial {rec.serial} ({rec.product_name})" if rec is not None else "a listed batch"
+        cur = self.decision
+        also = cur is not None and not cur.is_system_error and cur.status is Status.ALERT_FOUND
+        then = (f"You then entered a different batch ({self.manual.raw}); that batch also gave an alert, shown below." if also else
+                f"You then entered a different batch ({self.manual.raw}); that batch gave a different result, shown below.")
+        return (f"The batch read from the photo ({photo.decision.batch_as_read}) matched {where} in the {period} CDSCO NSQ list, "
+                f"and the product details from the photo corroborated it. {then} That result applies only to the batch you entered: "
+                "it does not cancel, disprove or replace the alert for the batch read from the photo. "
+                "Compare the batch printed on the pack with both numbers before acting.")
 
 
 _DATASET_FAILURES = {
@@ -348,6 +384,7 @@ class MedCheckPipeline:
             match=match,
             matched_record=self._record_for(decision),
             manual=ManualEntry(raw, bk.key, source, confirmed),
+            photo_result=prior.photo_result or prior,  # always the ORIGINAL photo result, also after repeated manual entries
         )
 
     # ------------------------------------------------------------------

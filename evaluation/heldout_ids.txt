@@ -1,4 +1,7 @@
-# Reserved held-out photographs (docs/OCR_INVESTIGATION.md). Never opened, viewed or OCR-processed during development.
+# Reserved held-out photographs (docs/OCR_INVESTIGATION.md). They were excluded from the OCR investigation and from tuning experiments.
+# CORRECTION (2026-11-15): they were NOT untouched. They were OCR-processed in the first baseline run (run_20261114_200938, all 27 photos,
+# Tesseract only) and an AI model visually read them to write reference_batches_heldout.csv. No photo has physical-pack ground truth (all Pending).
+# They are NOT eligible as untouched independent held-out samples.
 # The evaluation runner skips these unless --include-heldout is passed explicitly.
 # SPENT: processed once on 2026-11-15 (run heldout_run_20261115_020638, docs/HELDOUT_EVALUATION.md). They must not guide tuning.
 9

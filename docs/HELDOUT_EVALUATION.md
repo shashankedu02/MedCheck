@@ -1,6 +1,6 @@
 # Reserved-photo evaluation (one-time, 2026-11-15)
 
-**Not an accuracy study.** Seven photographs, a reference read by eye by an AI model, no physical-pack verification, no listed (NSQ) pack among them. It records what the unchanged system did on photos that had not been used during development. Raw per-photo records (with recognised text) are in the git-ignored run folder `evaluation/results/runs/heldout_run_20261115_020638/`; this document is the committed summary.
+**Not an accuracy study.** Seven photographs, a reference read by eye by an AI model, no physical-pack verification, no listed (NSQ) pack among them. It records what the unchanged system did on photos that had been set aside from the tuning experiments. *Correction (2026-11-15): they were not untouched; they had been OCR'd in the first baseline run `run_20261114_200938` (Tesseract only, before the split), so they are not independent held-out samples.* Raw per-photo records (with recognised text) are in the git-ignored run folder `evaluation/results/runs/heldout_run_20261115_020638/`; this document is the committed summary.
 
 ## Protocol (as executed)
 1. Commit verified as `c83ecf3`, working tree clean (`git status` empty) before the run and after it.
@@ -60,7 +60,7 @@ The populations differ: the development set contains photos with no batch on the
 
 ## What this establishes
 - On seven photos the system never accepted a wrong batch among those with a certain reference, never showed `No alert found` without confirmation, produced no errors, and its date readings agreed with the visual readings wherever dates were read.
-- The confirmation policy (D-026) met a real consistent misread (T009) on an unseen photo.
+- The confirmation policy (D-026) met a real consistent misread (T009) on a photo not used in the tuning experiments (see the correction at the top: it had been OCR'd earlier by the baseline).
 - Typical time on this machine was 5 to 11 s.
 
 ## What it does not establish
