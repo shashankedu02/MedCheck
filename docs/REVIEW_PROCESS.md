@@ -17,7 +17,7 @@ After each milestone is committed (`git log` shows `M<n>: ...`) and `BUILD_PROGR
 ## Always check (every milestone)
 - Can any input produce `Alert found` without a unique exact batch key **and** corroborating product identity?
 - Can any failure path (dataset, OCR engine, timeout, exception) end as `No alert found`?
-- Is any O/0, I/1, S/5, B/8 substitution performed outside ambiguity detection?
+- Is any O/0, I/1 (including L), S/5, B/8 substitution performed outside ambiguity detection, and can the folded key ever produce a match, an alert or a clean negative?
 - Does any code, log line, test or UI text expose image bytes, filenames or OCR text, or write an image to disk?
 - Does any user-facing text say safe, genuine, authentic, counterfeit-free or give medical advice?
 - Are thresholds only in `medcheck/config.py`, labelled UNCALIBRATED, and never described as validated?

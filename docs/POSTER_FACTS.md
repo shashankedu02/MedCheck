@@ -87,7 +87,7 @@ Evidence is kept in **separate categories and never merged into one percentage**
 
 ## 9. Limitations (state them on the poster)
 - **No accuracy figure exists.**
-  - No photograph of a real NSQ-listed pack has been tested; such packs are withdrawn and cannot be obtained.
+  - No photograph of a real NSQ-listed pack has been tested; such packs are assumed to be withdrawn and unobtainable (not verified with the owner).
   - `Alert found` has been exercised only on synthetic fixtures and programmatic tests.
 - **Narrow scope.** One monthly list (August 2026) only; it does not cover other months, other regulators or spurious drugs.
 - **Frequent abstention on real photos.**

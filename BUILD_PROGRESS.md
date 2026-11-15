@@ -4,6 +4,8 @@ Single source of truth for resuming development. Update at the end of every mile
 Run tests with: `.venv\Scripts\python.exe -m pytest -q`
 
 ## Current state
+**Documentation baseline after M16**: `docs/ARCHITECTURE.md` was rewritten from the committed code (baseline `f24770f`, branch `ui-redesign`): layers, module-by-module status (implemented + tested / manually verified / unverified), runtime flow, safety invariants with their enforcing code and tests, failure taxonomy, privacy boundary, test map, architectural evolution with reasons, known limitations and thirteen open issues recorded for the independent audit (OA-1 to OA-13; none reproduced or fixed by the baseline). Two clarifications were then recorded: **D-014** stays OPEN, pending further evaluation planning, with the original 60-image proposal and the evidence-category revision shown side by side and both marked unapproved and unexecuted (`docs/EVALUATION.md`, `docs/DECISIONS.md`); and the **look-alike fold** is documented as it is implemented (O->0, I->1, L->1, S->5, B->8: it can only add abstention and never produces a match, an alert or a clean negative; the L extension of D-005's four pairs is recorded as OA-11 to OA-13, matching code unchanged). `docs/DECISIONS.md` rows put in numeric order with a superseded-decisions table; `PROJECT_SPEC`, `TECH_STACK`, `WORKFLOWS`, `DEPLOYMENT`, `DEBUGGING_GUIDELINES`, `TESTING_GUIDELINES`, `SECURITY_GUIDELINES`, `README` and the `CLAUDE.md` document map reconciled. No application code, test, dataset or dependency changed. **Next phase: an independent architecture and test-coverage audit of this implementation** (line/branch coverage has never been measured; no coverage tool is installed).
+
 **M16 (result-screen redesign and clickable batch readings, branch `ui-redesign`, NOT merged to master)**: D-031 and D-032. `medcheck_ui/result.py` (new), `app.py`, tests `test_ui_result.py` and `test_batch_suggestions.py` (new), updates to `test_app.py`, `test_alert_check.py`, `test_decision.py`. Frontend only apart from one approved engine wording line (`medcheck/decision.py`: after a user-corrected or typed batch, `No alert found` says "the batch you entered", not "read from the photo"). No OCR, extraction, matching, classification, dataset, threshold or expiry change (`git diff` on `medcheck/` is that single line).
 - **Validation done by me:** full suite `pytest -q` -> **443 passed** (99 s). The four result states, the manual correction workflow (tick required, edit clears tick, corrected value labelled and shown apart from the OCR value, invalid input, markup escaping) and the clickable readings (exact string, no preselection, click never confirms or submits) were driven through Streamlit's `AppTest` against the real `app.py`, with real uploads of the demo images where an image gives the state; new tests were checked to fail when the behaviour is deliberately broken (D1 wording; suggestion callback not clearing the tick; callback upper-casing the reading). Layout of the alert and unable screens was seen in a headless-Edge render of the result HTML (not the running app).
 - **Validation done by the owner in a normal browser (owner-reported, not re-run by me):** the result-screen visual direction in the running app, the No alert found screen, and a sanity check of the clickable readings.
@@ -20,7 +22,7 @@ Run tests with: `.venv\Scripts\python.exe -m pytest -q`
 
 **M13 (completion sprint for Bengaluru Tech Summit, 2026-11-15)** is done: alert-side check (D-027), confirmation-aware metrics (D-028), labelled synthetic fixtures with a separate fixture check (7 of 7), documentation reconciled, poster facts in `docs/POSTER_FACTS.md`. No matching rule, threshold, dataset or expiry setting changed.
 
-**M12 (reserved-photo evaluation)** is done: see `docs/HELDOUT_EVALUATION.md`. The 7 reserved photographs are now spent. No code or threshold changed. D-014 (60-image protocol) is still open.
+**M12 (reserved-photo evaluation)** is done: see `docs/HELDOUT_EVALUATION.md`. The 7 reserved photographs are now spent. No code or threshold changed. D-014 (evaluation protocol) is still open.
 
 **M11 (D-026 confirmation policy)** is done: no clean negative (`No alert found` / `Expired`) is shown for any batch string until the user has compared it with the pack and confirmed; `Alert found` is never delayed. Triggered by a loosely cropped T003 read as `HLA50019` by both engines (true `HLAS0019`).
 
@@ -28,7 +30,7 @@ Run tests with: `.venv\Scripts\python.exe -m pytest -q`
 
 **V2 (M9) is implemented**: RapidOCR primary engine with Tesseract as extra evidence/fallback, glue-aware parser, rotation/crop cascade, manual batch entry (D-022..D-024). Real-photograph accuracy is still **not** evaluated (diagnostic runs on 20 development photos; the 7 reserved photos were used once in M12 and are now spent).
 
-All milestones M0-M6 are complete and committed. The application starts, accepts uploads, runs local OCR, extracts fields, matches against the dataset, and handles all four outcomes plus system errors. **Real-photograph accuracy has not been evaluated** (D-014 open), and `Expired` is intentionally disabled (D-007 open). See "What remains".
+All milestones M0-M16 are complete and committed; M14-M16 (the interface) are on branch `ui-redesign` only and `master` is at M13 until the demonstration-laptop rehearsal. The application starts, accepts uploads, runs local OCR, extracts fields, matches against the dataset, and handles all four outcomes plus system errors. **Real-photograph accuracy has not been evaluated** (D-014 open), and `Expired` is intentionally disabled (D-007 open). See "What remains".
 
 ## Milestones
 | ID | Milestone | Status |
@@ -40,6 +42,16 @@ All milestones M0-M6 are complete and committed. The application starts, accepts
 | M4 | Image validation, preprocessing, OCR adapter, field extraction | DONE |
 | M5 | Pipeline + Streamlit UI + privacy/error handling | DONE |
 | M6 | Evaluation tooling, docs reconciliation, review guide, final README | DONE |
+| M7 | Real-photograph evaluation workflow (`real_eval.py`, `run_evaluation.py`) | DONE |
+| M8 | OCR failure investigation (no production change) | DONE |
+| M9 | V2: RapidOCR primary, glue-aware parser, rotation/crop cascade, manual batch entry | DONE |
+| M10 | V2 manual-testing review (speed, date/glue fixes, look-alike explanations) | DONE |
+| M11 | D-026: clean negatives need the user's confirmation | DONE |
+| M12 | One-time reserved-photograph evaluation (photos now spent) | DONE |
+| M13 | Alert-side check (D-027), confirmation-aware metrics (D-028), labelled fixtures | DONE (on `master`, `ad8c68f`) |
+| M14 / M14b | Three.js interface and visual refinement (D-029) | DONE on `ui-redesign`, not merged |
+| M15 | Five-scene cinematic story (D-030) | DONE on `ui-redesign`, not merged; owner's normal-browser approval and laptop rehearsal pending |
+| M16 | Result-screen redesign and clickable batch readings (D-031, D-032) | DONE on `ui-redesign` (`f24770f`), not merged |
 
 ## Reports
 **M0** - baseline commit `78cc8d6` (byte-identical data blobs; `.gitattributes` stops CRLF conversion that had corrupted the committed data bytes); legacy CSV backup in `data/archive/` (hash-verified); `.venv` + pinned `requirements.txt`.
@@ -97,6 +109,7 @@ All milestones M0-M6 are complete and committed. The application starts, accepts
 - Tests: `tests/test_alert_check.py` (new), `tests/test_evaluation.py`, `tests/test_demo.py` extended.
 
 ## Test results (last run)
+- **After the post-M16 documentation baseline, main venv:** `pytest -q` -> **443 passed** (107 s). Also run: `scripts/build_dataset.py --check` -> OK (committed dataset and manifest exactly reproducible). Only documentation changed in this step.
 - **After M16, main venv:** `pytest -q` -> **443 passed** (107 s, run after the documentation edits, immediately before the commit).
 - **After M13, main venv:** `pytest -q` -> **359 passed** (124 s). Fixture check `scripts/run_fixture_check.py`: 7 of 7 (synthetic). Live app: `/_stcore/health` = ok, listening on 127.0.0.1 only, page 200.
 - (Older) **After M12 (run after the reserved-photo evaluation), main venv:** `pytest -q` -> **343 passed** (77 s).
@@ -117,15 +130,17 @@ None.
 1. **Confirm the reference batches and T008 on the physical packs** (see M9 open items), then add `ground_truth.csv` labels (`scripts/set_ground_truth.py`) and rescore.
 2. **D-007 expiry policy**: unchanged (disabled). Dates are being read (7/7 on the development set) but not used.
 3. **Held-out run**: done once in M12; those photos are spent. Any future held-out claim needs a fresh, labelled set.
-4. **D-014** (OPEN): approve or amend the evidence-category design in `docs/EVALUATION.md`, then collect fresh ordinary packs labelled from the physical pack before any accuracy claim.
+4. **D-014** (OPEN, pending further evaluation planning): decide between the original 60-image proposal and the evidence-category revision in `docs/EVALUATION.md` (or a combination; neither is approved or executed), settle the sample, labelling and consent plan, then collect fresh packs labelled from the physical pack before any accuracy claim.
 4a. Post-demonstration (need evidence): conflicting-manufacturer rule, product evidence restricted to the pack region, human-confirmation study, date agreement and confirmation before D-007.
-5. **Antigravity review** per `docs/REVIEW_PROCESS.md` (suggest M3, M5 and M9).
+5. **Independent architecture and test-coverage audit** of the M16 implementation (inputs: `docs/ARCHITECTURE.md` sections 9 and 12; first measure coverage, which has never been measured). The Antigravity review per `docs/REVIEW_PROCESS.md` (suggest M3, M5, M9) is part of this.
 6. Possible improvements (need evidence from labelled photos): deskew/perspective, speed (the cascade costs about 14 s per photo), reading batches hidden by embossing, a dark-ink-on-gold strategy.
 
 ## Verified environment
 Windows 11, Python 3.13.5, Tesseract 5.5.3 (`eng`, `osd` only), Git 2.56.1, streamlit 1.67.0, opencv-python-headless 5.0.0.93, numpy 2.5.4, pillow 13.0.0, RapidFuzz 3.14.6, pytest 9.2.0.
 
 ## Next action
+Approve and commit the documentation baseline, then run the independent architecture and test-coverage audit (`docs/ARCHITECTURE.md` section 12). Before any merge of `ui-redesign` into `master`: the demonstration-laptop rehearsal.
+
 Owner (16 Nov): poster from `docs/POSTER_FACTS.md`; rehearse the demo (README "Demonstration"); print fixtures with the banner visible. After the summit: D-014 decision, confirm reference batches on the physical packs, items 4-4a.
 
 (Older) Owner: confirm the reference batches and T008 on the packs; then decide whether to run the held-out photographs.

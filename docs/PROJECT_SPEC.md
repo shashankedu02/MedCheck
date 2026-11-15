@@ -5,12 +5,12 @@ Build a local-first demonstrator that reads medicine-packaging text from a user-
 
 ## In-scope flow
 1. Accept one medicine package/strip image.
-2. Validate and preprocess the image.
-3. Run local Tesseract OCR.
-4. Extract product identity, batch number, expiry date, manufacturing date, and optional manufacturer where legible.
+2. Validate the image in memory and detect the pack region.
+3. Run local OCR: RapidOCR (primary) on the full frame and the pack region, with Tesseract as additional evidence and as the fallback; rotation and confirmation passes only under the rules in `docs/ARCHITECTURE.md` section 3.1 (engines: `docs/OCR_ENGINES.md`).
+4. Extract the batch number, expiry date and manufacturing date from labelled lines; a batch is read only when the OCR passes agree (strict agreement). Product identity and the optional manufacturer come from the photo's text and only corroborate.
 5. Preserve raw OCR evidence and create separate normalized comparison values.
-6. Compare candidates against the validated August 2026 CSV.
-7. Return one of four user-facing outcomes with evidence and limitations.
+6. Compare the batch against the validated August 2026 CSV.
+7. Return one of four user-facing outcomes with evidence and limitations. The user may select one of the OCR's batch readings, correct it or type it; such a value is labelled as the user's, never counts as OCR evidence and is checked by the same rules.
 
 ## Required statuses
 - `Alert found`: the batch read from the photo matches exactly one row of the dataset (every row is an NSQ entry by construction of the CDSCO list) and corroborating product identity is present (`docs/MATCHING.md`).
@@ -30,4 +30,4 @@ Never call a product “safe,” “genuine,” “authentic,” or “free from
 The dataset is 220 records and 10 columns, extracted from the official CDSCO portal (`docs/DATASET.md`). It is a monthly snapshot extraction, not a regulatory certification or a complete regulatory record.
 
 ## Evaluation
-Physical NSQ-listed packs cannot be obtained, so evidence is kept in separate categories that are never merged into one percentage: real photographs of ordinary packs, synthetic test fixtures, programmatic tests, verified real positives if any, and a human-confirmation study (`docs/EVALUATION.md`, `docs/EVALUATION_STRATEGY.md`). The formal study (D-014) has not been performed. No accuracy, precision, recall, F1, time-saving, or other performance claim may be presented until a recorded evaluation produces it, and a fixture pass rate is never an accuracy figure.
+The evaluation plan is **undecided (D-014 OPEN, pending further evaluation planning)**. The original proposal was 60 images (30 alert-listed, 30 non-alert). An engineering assessment judged that physical NSQ-listed packs probably cannot be obtained, and a revision is proposed that keeps evidence in separate categories never merged into one percentage (real photographs of ordinary packs, synthetic test fixtures, programmatic tests, verified real positives if any, a human-confirmation study); `docs/EVALUATION.md` lays out both proposals side by side. Neither is approved or executed, and no formal study has been performed. No accuracy, precision, recall, F1, time-saving, or other performance claim may be presented until a recorded evaluation produces it, and a fixture pass rate is never an accuracy figure.
