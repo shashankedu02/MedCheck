@@ -37,6 +37,12 @@ except Exception:  # noqa: BLE001
     def plain_ui() -> bool:  # type: ignore[misc,no-redef]
         return True
 
+try:  # where the app runs decides which privacy sentence is true (D-034)
+    from medcheck_ui.hosting import sidebar_note
+except Exception:  # noqa: BLE001
+    def sidebar_note() -> str:  # type: ignore[misc]
+        return "Photos are processed in memory on the machine running this app. MedCheck does not save, log or forward them."
+
 try:  # result presentation (status banner, reading cards, notes); without it the basic native rendering below is used
     from medcheck_ui import result as result_view
 except Exception:  # noqa: BLE001
@@ -276,7 +282,7 @@ def render_tool(pipeline: MedCheckPipeline, period: str, stage) -> None:
             st.text(f"Data fingerprint: {pipeline.dataset.sha256[:12]}")
         else:
             st.error("The NSQ list could not be loaded. Checks are disabled.")
-        st.caption("Photos are processed in memory on the computer running this app. They are not saved, logged or sent elsewhere.")
+        st.caption(sidebar_note())
 
     tab_upload, tab_camera = st.tabs(["Upload a photo", "Use the camera"])
     with tab_upload:

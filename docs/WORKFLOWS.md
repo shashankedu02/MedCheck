@@ -7,7 +7,7 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install --no-deps -r requirements-ocr.txt   # primary OCR engine (RapidOCR); see docs/OCR_ENGINES.md for why --no-deps
 tesseract --version        # native engine must be installed separately (v5.x, English data)
 ```
-Without `requirements-ocr.txt` the app still runs, on Tesseract alone, and says so.
+Without `requirements-ocr.txt` the app still runs, on Tesseract alone, and says so. (Since D-034 `requirements.txt` also lists the OCR stack with `opencv-python` instead of the headless wheel, for Streamlit Community Cloud; see `docs/DEPLOYMENT.md`. This existing two-step local install remains valid.)
 If PowerShell blocks `Activate.ps1`, skip activation and call `.\.venv\Scripts\python.exe` directly, as below.
 
 ## Run the app

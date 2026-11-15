@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-15 - deployment preparation for Streamlit Community Cloud (branch `ui-redesign`, D-034; NOT deployed)
+- `requirements.txt` now carries every runtime pin, RapidOCR stack included (Community Cloud reads only that file); OpenCV is `opencv-python==5.0.0.93` (the name `rapidocr-onnxruntime` declares; same version as the headless wheel used in testing). `requirements-ocr.txt` is kept for the existing local `--no-deps` install and is now redundant on a fresh environment. New `packages.txt`: `tesseract-ocr`, `libgl1`, `libglib2.0-0`.
+- New `medcheck_ui/hosting.py`: hosted-mode privacy wording (sidebar note, hero note, fact chip, story scenes 3 and 4, scanning panel in `scene.js`). Local wording unchanged and remains the default. Wording only.
+- `docs/DEPLOYMENT.md` rewritten as the Community Cloud runbook; `tests/test_hosting.py` (14 tests).
+- No OCR, extraction, matching, decision, dataset, threshold or expiry change. Linux install and the live app are NOT yet verified. D-014 and D-007 remain OPEN.
+
 ## 2026-11-15 - competition finalisation: photo alert preserved (AU-1), accurate OCR wording (AU-5), held-out history corrected (branch `ui-redesign`, D-033)
 - **AU-1:** a manual batch entry can no longer erase an OCR `Alert found`. `ScanResult.photo_result` keeps the original photo result; `preserved_photo_alert` and `preserved_photo_alert_text` (`medcheck/pipeline.py`) feed both renderers (`medcheck_ui/result.py`, `app.py` `render_photo_alert_basic`). The user's result is shown separately and is stated not to cancel or disprove the photo's alert. Tests: `tests/test_photo_alert_preserved.py` (16: no-alert, unable and also-alert outcomes, repeated entries, no notice for a non-alert photo, same-reading confirmation, safeguards unchanged, both renderers, the audit reproduction TG261185 then ZX99001Q).
 - **AU-5:** story scene 3 (`medcheck_ui/theme.py`) and the scanning overlay (`medcheck_ui/assets/scene.js`) no longer say two engines always run and both must agree. Two tests in `tests/test_ui_scene_story.py` tie the copy to `config.MIN_AGREEING_OCR_PASSES` and `reconcile_batch`. Animations, timing and layout unchanged.

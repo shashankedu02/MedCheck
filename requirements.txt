@@ -1,12 +1,27 @@
-# Direct dependencies, pinned to the versions verified together on
-# Windows 11 / Python 3.13.5 / Tesseract 5.5.3 (see BUILD_PROGRESS.md).
-# The primary OCR engine (RapidOCR) is pinned in requirements-ocr.txt and installed with --no-deps (see that file).
-# Tesseract itself is a separate native install and is NOT installed by pip.
-# OCR calls the tesseract executable directly (image via stdin) so no image is written
-# to a temp file; pytesseract is therefore not a runtime dependency.
+# Every runtime dependency, pinned. One file so Streamlit Community Cloud (which reads only requirements.txt) installs
+# the same set the app was verified with, including the primary OCR engine (RapidOCR + onnxruntime).
+# Verified together on Windows 11 / Python 3.13.5 / Tesseract 5.5.3 (see BUILD_PROGRESS.md). Linux wheels for every pin
+# below exist for CPython 3.13 (checked with `pip download --platform manylinux --python-version 3.13`); the first full
+# Linux install happens in the Community Cloud build (docs/DEPLOYMENT.md).
+#
+# OpenCV: rapidocr-onnxruntime declares `opencv-python`. The earlier two-step install used opencv-python-headless with
+# `--no-deps` to avoid a second cv2 build. A single requirements file cannot say `--no-deps` for one line, so the same
+# OpenCV version is pinned here under the distribution name rapidocr asks for (opencv-python==5.0.0.93, same cv2 build
+# number as the headless wheel used in testing). It needs libGL, so packages.txt lists libgl1 and libglib2.0-0 (D-034).
+# Tesseract itself is a native program: locally a separate install, on Community Cloud packages.txt (tesseract-ocr).
+# OCR calls the tesseract executable directly (image via stdin), so no image is written to a temp file.
 streamlit==1.67.0
-opencv-python-headless==5.0.0.93
+opencv-python==5.0.0.93
 pillow==13.0.0
 numpy==2.5.4
 RapidFuzz==3.14.6
 pytest==9.2.0
+
+# Primary OCR engine (models ship inside the rapidocr wheel; no download at run time; hashes pinned in medcheck/config.py).
+rapidocr-onnxruntime==1.2.3
+onnxruntime==1.32.0
+flatbuffers==25.12.19
+pyclipper==1.4.0
+PyYAML==6.0.3
+shapely==2.2.0
+six==1.17.0
