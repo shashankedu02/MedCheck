@@ -1,6 +1,17 @@
 # MedCheck
 
 **Photo-based medicine batch verification using local OCR and conservative matching.**
+
+[![CI](https://github.com/shashankedu02/MedCheck/actions/workflows/ci.yml/badge.svg)](https://github.com/shashankedu02/MedCheck/actions/workflows/ci.yml)
+
+### At a glance
+
+- **Problem.** India's drug regulator (CDSCO) publishes monthly lists of medicine batches that failed quality tests ("Not of Standard Quality"). The August 2026 list runs to 22 portal pages and 220 batches. Checking a strip in your hand against it means comparing batch numbers character by character.
+- **What MedCheck does.** Reads the batch number from a photo with local OCR, looks it up in that list, and answers with one of four outcomes. The safe default is **Unable to verify**.
+- **Why it is cautious.** An alert needs an exact batch match **and** matching product details. Batches that differ only by look-alike characters (O/0, I/1, S/5, B/8) make it abstain rather than guess. A clean "No alert found" appears only after you confirm the batch against the pack, and it is never shown in green. The dataset is hash-checked on every start.
+- **What is verified.** The automated suite (475 tests) and the dataset rebuild check pass on Ubuntu in CI. On real photographs from one phone, OCR read the batch exactly in 3 of the 7 development photos with a certain reference reading, and in 1 of 4 reserved photos. It accepted no wrong batch among those. All 27 photos first showed "Unable to verify", either abstaining or waiting for you to confirm the batch ([docs/HELDOUT_EVALUATION.md](docs/HELDOUT_EVALUATION.md)). **These are not accuracy figures.** The alert path has never been exercised on a photograph of a real listed pack. See [Known limitations](#known-limitations).
+- **What it is not.** It does not detect counterfeits, test the medicine or give medical advice.
+
 Upload or capture a photo of a medicine strip or box. MedCheck reads the batch number with local OCR (RapidOCR, with Tesseract as extra evidence) and checks it against the **CDSCO August 2026 NSQ (Not of Standard Quality) alert list** (220 records). It then reports one of four outcomes:
 
 | Outcome | Meaning |
