@@ -94,3 +94,7 @@ The immutable official CDSCO extraction (`data/cdsco_august_2026_nsq_official_ex
 
 ## Project documents
 `CLAUDE.md` (instructions and document map), `BUILD_PROGRESS.md` (state of the build), `docs/` (specifications and decisions), `docs/archive/` (superseded history).
+
+## License
+
+The MedCheck source code is released under the [MIT License](LICENSE). The NSQ data in `data/` is extracted from the public CDSCO portal (see `docs/DATASET.md`); it is CDSCO's publication, not covered by the MIT License, and is included unchanged for verification. Third-party components keep their own licences (Three.js under `static/vendor/three/`; OCR engines listed in `docs/OCR_ENGINES.md`).
