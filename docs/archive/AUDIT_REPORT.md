@@ -10,7 +10,7 @@
 - `MedCheck_Starter_Blueprint_v2(1).zip` (archive was available in the working folder).
 - `cdsco_august_2026_nsq.csv`.
 - `page_extraction_log.csv`, `mismatch_log.csv`, `unresolved_items.csv`, `final_audit_report.md`.
-- Extended abstract and Claude transcript were available as supporting inputs.
+- Extended abstract and AI-assistant transcript were available as supporting inputs.
 - Deep Research report's proposed final directory structure and narrative.
 
 ## Key findings and corrections
@@ -22,7 +22,7 @@
 6. **Dataset integrity.** Added fail-closed behavior and proposed manifest/hash; hash is not fabricated or pinned before freezing the exact approved CSV.
 7. **Evaluation claims.** The 60-image set remains a proposal; no metrics are claimed as achieved.
 8. **Source-code grounding.** The docs specify proposed module paths and conceptual models only. No claim is made that these modules/classes already exist.
-9. **Claude Code instructions.** Added explicit inspect-first, plan-before-implementation, approval, conflict escalation, test-and-report workflow. Verify official Claude Code loading behavior against current Anthropic documentation before relying on nested instruction discovery.
+9. **Project instructions.** Added explicit inspect-first, plan-before-implementation, approval, conflict escalation, test-and-report workflow. Verify how the tooling loads instruction files before relying on nested instruction discovery.
 10. **Privacy and medical safety.** Reaffirmed no image persistence by default and no safety/authenticity claims.
 
 ## Priority register

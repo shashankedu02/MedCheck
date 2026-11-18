@@ -1,15 +1,15 @@
 # Independent Review Process (Antigravity)
 
-Claude Code implements; Antigravity reviews. They must never edit the same files at the same time. Antigravity works **read-only** and reports findings; Claude Code reconciles them and applies approved fixes.
+The maintainer implements; Antigravity reviews. They must never edit the same files at the same time. Antigravity works **read-only** and reports findings; the maintainer reconciles them and applies approved fixes.
 
 ## When to review
 After each milestone is committed (`git log` shows `M<n>: ...`) and `BUILD_PROGRESS.md` says it is DONE. Review the commit range since the previous reviewed milestone: `git diff <previous-tag-or-commit>..HEAD`.
 
 ## How the owner runs a review
-1. Open the repo in Antigravity. Tell it: "You are a read-only reviewer. Read `CLAUDE.md`, `AGENTS.md`, `docs/REVIEW_PROCESS.md` and `BUILD_PROGRESS.md`. Review the milestone below. Do not edit any file."
+1. Open the repo in Antigravity. Tell it: "You are a read-only reviewer. Read `PROJECT_GUIDE.md`, `AGENTS.md`, `docs/REVIEW_PROCESS.md` and `BUILD_PROGRESS.md`. Review the milestone below. Do not edit any file."
 2. Paste the milestone's checklist from this document.
-3. Save the findings as `reviews/M<n>_antigravity.md` (create the folder if missing). Only the owner or Claude Code writes this file, never both reviewers and implementer at the same moment.
-4. Tell Claude Code: "Reconcile `reviews/M<n>_antigravity.md`." Claude Code verifies each finding against the code, fixes confirmed defects with tests, records rejected findings with the reason, and updates `BUILD_PROGRESS.md`.
+3. Save the findings as `reviews/M<n>_antigravity.md` (create the folder if missing). Only the owner or the maintainer writes this file, never both reviewers and implementer at the same moment.
+4. Tell the maintainer: "Reconcile `reviews/M<n>_antigravity.md`." The maintainer verifies each finding against the code, fixes confirmed defects with tests, records rejected findings with the reason, and updates `BUILD_PROGRESS.md`.
 
 ## Finding format
 `ID | Severity (Critical/High/Medium/Low) | File:line | What is wrong | Concrete failing input or scenario | Suggested fix`. Findings without a concrete scenario are treated as questions, not defects.

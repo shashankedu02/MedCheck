@@ -1,4 +1,4 @@
-# MedCheck - Claude Code Project Instructions
+# MedCheck - Project Instructions
 
 MedCheck: photo-based medicine batch verification using local OCR and conservative matching against the CDSCO August 2026 NSQ list. Local-first Streamlit app. **Not** an authenticity, counterfeit, quality or medical-advice tool.
 
@@ -58,4 +58,4 @@ Permanently deleting source files or historical data; overwriting the official e
 Python 3.13, virtualenv `.venv`, dependencies pinned in `requirements.txt` and `requirements-ocr.txt` (verified together; the latter is installed with `--no-deps`, see `docs/OCR_ENGINES.md`). Thresholds live only in `medcheck/config.py` and are labelled UNCALIBRATED. Pure deterministic logic in normalization/matching/decision; the UI holds no matching rules. Type-hint public functions. Tests must be real: no hard-coded results, report only commands actually run.
 
 ## Review protocol
-Claude Code owns all edits. Antigravity (or any other reviewer) reads and reports defects per `docs/REVIEW_PROCESS.md`; it never edits files concurrently.
+The maintainer owns all edits. Antigravity (or any other reviewer) reads and reports defects per `docs/REVIEW_PROCESS.md`; it never edits files concurrently.

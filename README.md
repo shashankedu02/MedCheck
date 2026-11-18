@@ -93,7 +93,7 @@ The immutable official CDSCO extraction (`data/cdsco_august_2026_nsq_official_ex
 - Local use only. Public hosting would send photos to a server and needs a separate privacy review (`docs/DEPLOYMENT.md`).
 
 ## Project documents
-`CLAUDE.md` (instructions and document map), `BUILD_PROGRESS.md` (state of the build), `docs/` (specifications and decisions), `docs/archive/` (superseded history).
+`PROJECT_GUIDE.md` (instructions and document map), `BUILD_PROGRESS.md` (state of the build), `docs/` (specifications and decisions), `docs/archive/` (superseded history).
 
 ## License
 

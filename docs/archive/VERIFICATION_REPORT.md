@@ -15,7 +15,7 @@
 - No complete application source repository was available for code inspection.
 - No Python application tests or OCR tests were run.
 - No dependency compatibility installation was performed.
-- No current official Anthropic documentation was consulted during this package-generation step; Claude Code instructions are conservative project guidance and should be checked against the installed Claude Code version.
+- No current official vendor documentation was consulted during this package-generation step; the project instructions are conservative guidance and should be checked against the installed tooling version.
 - No independent re-audit of the 22 source PDF pages was performed.
 - No 60-image evaluation was performed.
 
